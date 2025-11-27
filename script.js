@@ -184,77 +184,39 @@ function showAuthModal(mode = "login") {
 }
 
 /* ========== Cart UI ========== */
-// ------------------------------
-// CART SYSTEM
-// ------------------------------
+function updateCartUI() {
+  const cart = loadCart();
+  const count = cart.reduce((s,i)=>s + i.qty, 0);
+  if ($("cartCount")) $("cartCount").textContent = count;
 
-const $ = id => document.getElementById(id);
+  const wrap = $("cartItems");
+  if (!wrap) return;
 
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
+  wrap.innerHTML = "";
+  if (!cart.length) {
+    wrap.innerHTML = `<p class="text-sm text-gray-500">Cart empty.</p>`;
+  } else {
+    cart.forEach(i => {
+      const div = document.createElement("div");
+      div.className = "flex items-center justify-between";
+      div.innerHTML = `
+        <div>
+          <div class="font-semibold">${i.title}</div>
+          <div class="text-sm text-gray-500">Qty ${i.qty} × ${rup(i.price)}</div>
+        </div>
+        <div class="text-right">
+          <div class="font-bold">${rup(i.qty * i.price)}</div>
+          <button data-id="${i.id}" class="removeBtn text-sm mt-1">Remove</button>
+        </div>`;
+      wrap.appendChild(div);
+    });
 
-/* Update Count */
-function updateCartCount() {
-  const countSpan = $("cartCount");
-  if (countSpan) countSpan.textContent = cart.length;
-}
-
-/* Save Cart */
-function saveCart() {
-  localStorage.setItem("cart", JSON.stringify(cart));
-  updateCartCount();
-}
-
-/* Render Cart Modal */
-function renderCart() {
-  const box = $("cartItems");
-  if (!box) return;
-  box.innerHTML = "";
-
-  if (cart.length === 0) {
-    box.innerHTML = "<p>No items in cart.</p>";
-    return;
+    wrap.querySelectorAll(".removeBtn")
+    .forEach(btn => btn.onclick = () => removeFromCart(btn.dataset.id));
   }
 
-  cart.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "p-2 border rounded flex justify-between";
-    div.innerHTML = `
-      <span>${item.name}</span>
-      <span>$${item.price}</span>
-    `;
-    box.appendChild(div);
-  });
+  if ($("cartTotal")) $("cartTotal").textContent = rup(cartTotal());
 }
-
-// ------------------------------
-// EVENT HANDLERS
-// ------------------------------
-
-window.addEventListener("DOMContentLoaded", () => {
-
-  updateCartCount();
-
-  // Open Cart (index + product)
-  $("btnCart")?.addEventListener("click", () => {
-    $("cartModal").classList.remove("hidden");
-    renderCart();
-  });
-
-  // Close Cart
-  $("closeCart")?.addEventListener("click", () => {
-    $("cartModal").classList.add("hidden");
-  });
-
-  // PRODUCT PAGE ADD TO CART
-  $("addToCartBtn")?.addEventListener("click", () => {
-    const name = $("productName")?.innerText;
-    const price = $("productPrice")?.innerText.replace("$", "");
-
-    cart.push({ name, price });
-    saveCart();
-    alert("Added to Cart!");
-  });
-});
 
 /* ========== Checkout ========== */
 async function checkout() {
