@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Reset Password</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -31,7 +32,7 @@
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI3NzU4NzIsImV4cCI6MjA0ODM1MTg3Mn0.NYV0w-F9zdZku32JE7vCrzl8Usbb1HqdJP7PRHGWvbw"
     );
 
-    // --- Auto Activate Token from URL ---
+    // 1) Activate Reset Token From URL
     async function activateToken() {
       const params = new URLSearchParams(window.location.hash.substring(1));
       const access = params.get("access_token");
@@ -47,7 +48,7 @@
 
     activateToken();
 
-    // --- Reset Password Function ---
+    // 2) Update Password
     async function resetPassword() {
       const newPass = document.getElementById("newPass").value;
       const msg = document.getElementById("msg");
@@ -57,9 +58,7 @@
         return;
       }
 
-      const { error } = await sb.auth.updateUser({
-        password: newPass
-      });
+      const { error } = await sb.auth.updateUser({ password: newPass });
 
       if (error) {
         msg.textContent = "Error: " + error.message;
