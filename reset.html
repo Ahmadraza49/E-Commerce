@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -18,11 +19,50 @@
       class="w-full border p-2 rounded mb-3"
       placeholder="Enter new password">
 
-    <button onclick="resetPassword()"
+    <button id="btnUpdate"
       class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
       Update Password
     </button>
 
     <p id="msg" class="text-center mt-3 text-red-600 font-semibold"></p>
   </div>
-  <script src="script.js"></script>
+
+  <script>
+    /* ----- SUPABASE CONNECT ----- */
+    const sb = supabase.createClient(
+      "https://ytxhlihzxgftffaikumr.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA"
+    );
+
+    /* ----- ACTUAL RESET FUNCTION ----- */
+    async function resetPassword() {
+      const newPass = document.getElementById("newPass").value.trim();
+      const msg = document.getElementById("msg");
+
+      if (!newPass) {
+        msg.textContent = "Enter a new password!";
+        return;
+      }
+
+      msg.textContent = "Updating...";
+
+      const { error } = await sb.auth.updateUser({ password: newPass });
+
+      if (error) {
+        msg.textContent = error.message;
+      } else {
+        msg.style.color = "green";
+        msg.textContent = "Password updated successfully! Redirecting...";
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1500);
+      }
+    }
+
+    // BUTTON CLICK WORKING 100%
+    document.getElementById("btnUpdate").onclick = resetPassword;
+  </script>
+
+</body>
+
+</html>
