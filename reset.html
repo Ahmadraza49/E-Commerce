@@ -31,7 +31,7 @@
   </div>
 
   <script>
-    const supabase = supabase.createClient(
+    const sb = supabase.createClient(
       "https://ytxhlihzxgftffaikumr.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA"
     );
@@ -41,18 +41,27 @@
 
     resetBtn.onclick = async () => {
       const newPass = document.getElementById("newPass").value.trim();
-      if (!newPass) return msg.textContent = "Enter a new password.";
+      if (newPass.length < 6) {
+        msg.textContent = "Password must be at least 6 characters.";
+        msg.style.color = "red";
+        return;
+      }
 
-      const { error } = await supabase.auth.updateUser({
-        password: newPass,
-      });
+      msg.textContent = "Updating...";
+      msg.style.color = "gray";
 
-      if (error) msg.textContent = error.message;
-      else {
+      const { error } = await sb.auth.updateUser({ password: newPass });
+
+      if (error) {
+        msg.textContent = error.message;
+        msg.style.color = "red";
+      } else {
         msg.textContent = "Password updated! Redirecting...";
-        setTimeout(() => (window.location.href = "index.html"), 1500);
+        msg.style.color = "green";
+        setTimeout(() => window.location.href = "index.html", 1500);
       }
     };
   </script>
+
 </body>
 </html>
