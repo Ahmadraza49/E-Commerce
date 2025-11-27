@@ -3,64 +3,71 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Reset Password — MyShop</title>
+  <title>Reset Password</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
-<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
-  <div class="bg-white p-6 rounded-xl shadow w-full max-w-sm">
-    <h2 class="text-xl font-semibold mb-4">Reset Password</h2>
+  <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-sm">
+    <h2 class="text-2xl font-bold mb-4 text-center">Reset Password</h2>
 
-    <input
-      id="newPass"
-      type="password"
-      placeholder="Enter new password"
-      class="w-full border px-3 py-2 rounded mb-3"
-    />
+    <input id="newPass" type="password"
+      class="w-full border p-2 rounded mb-3"
+      placeholder="Enter new password">
 
-    <button
-      id="resetBtn"
-      class="w-full bg-indigo-600 text-white py-2 rounded"
-    >
+    <button onclick="resetPassword()"
+      class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
       Update Password
     </button>
 
-    <p id="resetMsg" class="mt-3 text-sm"></p>
+    <p id="msg" class="text-center mt-3 text-red-600 font-semibold"></p>
   </div>
 
   <script>
     const sb = supabase.createClient(
       "https://ytxhlihzxgftffaikumr.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA"
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI3NzU4NzIsImV4cCI6MjA0ODM1MTg3Mn0.NYV0w-F9zdZku32JE7vCrzl8Usbb1HqdJP7PRHGWvbw"
     );
 
-    const resetBtn = document.getElementById("resetBtn");
-    const msg = document.getElementById("resetMsg");
+    // --- Auto Activate Token from URL ---
+    async function activateToken() {
+      const params = new URLSearchParams(window.location.hash.substring(1));
+      const access = params.get("access_token");
+      const refresh = params.get("refresh_token");
 
-    resetBtn.onclick = async () => {
-      const newPass = document.getElementById("newPass").value.trim();
-      if (newPass.length < 6) {
-        msg.textContent = "Password must be at least 6 characters.";
-        msg.style.color = "red";
+      if (access && refresh) {
+        await sb.auth.setSession({
+          access_token: access,
+          refresh_token: refresh
+        });
+      }
+    }
+
+    activateToken();
+
+    // --- Reset Password Function ---
+    async function resetPassword() {
+      const newPass = document.getElementById("newPass").value;
+      const msg = document.getElementById("msg");
+
+      if (!newPass) {
+        msg.textContent = "Please enter a new password";
         return;
       }
 
-      msg.textContent = "Updating...";
-      msg.style.color = "gray";
-
-      const { error } = await sb.auth.updateUser({ password: newPass });
+      const { error } = await sb.auth.updateUser({
+        password: newPass
+      });
 
       if (error) {
-        msg.textContent = error.message;
-        msg.style.color = "red";
+        msg.textContent = "Error: " + error.message;
       } else {
-        msg.textContent = "Password updated! Redirecting...";
         msg.style.color = "green";
-        setTimeout(() => window.location.href = "index.html", 1500);
+        msg.textContent = "Password updated successfully!";
       }
-    };
+    }
   </script>
 
 </body>
