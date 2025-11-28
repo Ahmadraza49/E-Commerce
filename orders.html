@@ -1,74 +1,65 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>My Orders</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MyShop — Orders</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <!-- Supabase v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body class="bg-gray-100">
 
-  <div class="p-4 bg-white shadow flex justify-between">
+  <!-- Navbar -->
+  <div class="bg-white shadow p-4 flex justify-between items-center">
     <h1 class="text-xl font-bold">My Orders</h1>
-    <a href="index.html" class="px-3 py-1 border rounded">Home</a>
+
+    <div class="flex gap-3 items-center">
+      <button id="btnLogout" class="px-3 py-1 bg-red-500 text-white rounded hidden">Logout</button>
+      <button id="btnLogin" class="px-3 py-1 bg-blue-600 text-white rounded">Login</button>
+    </div>
   </div>
 
-  <div id="ordersList" class="p-4 space-y-4"></div>
+  <!-- Orders -->
+  <div class="p-4">
+    <h2 class="text-lg font-semibold mb-3">Your Orders</h2>
 
-<script>
-const sb = supabase.createClient(
-  "https://ytxhlihzxgftffaikumr.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA"
-);
+    <div id="ordersList" class="space-y-3 text-sm">
+      Loading orders...
+    </div>
+  </div>
 
-async function loadOrders() {
-  const user = (await sb.auth.getUser()).data?.user;
-  if (!user) {
-    document.getElementById("ordersList").innerHTML =
-      "<p class='text-center mt-10 text-red-600'>Please login first.</p>";
-    return;
-  }
+  <!-- Auth Modal -->
+  <div id="loginModal"
+       class="hidden fixed inset-0 bg-black bg-opacity-40 justify-center items-center">
+    <div class="bg-white p-6 rounded shadow w-80">
+      <h2 id="authTitle" class="text-xl font-bold mb-2">Login</h2>
+      <p id="authDesc" class="text-sm text-gray-600 mb-3">Enter your details</p>
 
-  const { data, error } = await sb
-    .from("orders")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+      <input id="authEmail" class="border p-2 rounded w-full mb-2" placeholder="Email" type="email" />
+      <input id="authPass" class="border p-2 rounded w-full mb-2" placeholder="Password" type="password" />
 
-  if (error) {
-    console.error(error);
-    return;
-  }
+      <div id="authMsg" class="text-sm mb-2"></div>
 
-  const container = document.getElementById("ordersList");
-  container.innerHTML = "";
+      <button id="submitAuth"
+              class="w-full mb-2 bg-blue-600 text-white py-2 rounded">
+        Login
+      </button>
 
-  data.forEach(order => {
-    const box = document.createElement("div");
-    box.className = "bg-white p-4 rounded shadow";
+      <button id="btnReset"
+              class="w-full mb-2 bg-gray-200 py-2 rounded">
+        Reset Password
+      </button>
 
-    box.innerHTML = `
-      <p class="font-semibold">Order #${order.id}</p>
-      <p class="text-sm text-gray-500">${new Date(order.created_at).toLocaleString()}</p>
-      <p class="mt-2">Status: <strong>${order.status}</strong></p>
-      <p class="mt-2">Total: <strong>₹${order.total}</strong></p>
-      <p class="mt-2 font-semibold">Items:</p>
-      ${order.items
-        .map(
-          item =>
-            `<div class="ml-4 text-sm">• ${item.title} × ${item.qty} — ₹${item.price * item.qty}</div>`
-        )
-        .join("")}
-    `;
+      <button id="cancelAuth"
+              class="w-full bg-red-200 py-2 rounded">
+        Cancel
+      </button>
+    </div>
+  </div>
 
-    container.appendChild(box);
-  });
-}
-
-loadOrders();
-</script>
-
+  <script src="script.js"></script>
 </body>
 </html>
-   
