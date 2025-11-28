@@ -1,275 +1,361 @@
 /* =======================================================
-   script.js — Cart + Auth + Products + Orders (FINAL)
+   FINAL script.js — Email+Password auth, reset, products, orders
+   SIGNUP BUTTON FIXED ✔
 ======================================================= */
 
-/* ========== Supabase Setup ========== */
+/* ========== Supabase setup ========== */
 const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA";
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* Utilities */
+/* ========== Utilities ========== */
 const $ = (id) => document.getElementById(id);
-const rup = (n) => "₹" + Number(n || 0).toLocaleString();
+const rup = (n) => "$" + Number(n || 0).toLocaleString();
 
-function escapeHtml(str) {
-  return String(str || "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-
-/* Image fallback handler */
-function setImageWithFallback(img, url, title) {
-  if (!img) return;
-
-  const fallback = `https://placehold.co/300x200?text=${encodeURIComponent(
-    title
-  )}`;
-
-  img.src = url || fallback;
-  img.onerror = () => {
-    img.src = fallback;
+function setImageWithFallback(imgEl, url, title) {
+  const fallback = `https://placehold.co/600x400?text=${encodeURIComponent(title || "Product")}&font=roboto`;
+  if (!imgEl) return;
+  if (!url) {
+    imgEl.src = fallback;
+    return;
+  }
+  imgEl.src = url;
+  imgEl.onerror = () => {
+    imgEl.onerror = null;
+    imgEl.src = fallback;
   };
 }
 
-/* ========== CART LOGIC ========== */
-const CART_KEY = "myshop_cart_v1";
+/* ========== In-memory cart ========== */
+let CART = [];
+function loadCart() { return CART; }
+function saveCartToMemory(cart) { CART = cart; updateCartUI(); }
+function addToCart(item) {
+  const cart = loadCart();
+  const found = cart.find(i => i.id === item.id);
+  if (found) found.qty += item.qty;
+  else cart.push({...item});
+  saveCartToMemory(cart);
+}
+function removeFromCart(id) { saveCartToMemory(loadCart().filter(i => i.id !== id)); }
+function clearCart() { CART = []; updateCartUI(); }
+function cartTotal() { return loadCart().reduce((s,i)=> s + Number(i.price) * i.qty, 0); }
 
-function loadCart() {
+/* ========== AUTH ========== */
+async function initAuthUI() {
   try {
-    return JSON.parse(localStorage.getItem(CART_KEY)) || [];
-  } catch {
-    return [];
+    const res = await sb.auth.getSession();
+    const session = res?.data?.session;
+    setUser(session?.user ?? null);
+  } catch (e) { console.warn("initAuthUI error:", e); }
+
+  sb.auth.onAuthStateChange((_event, session) => {
+    setUser(session?.user ?? null);
+  });
+}
+
+function setUser(user) {
+  const userArea = $("userArea");
+  const btnLogin = $("btnLogin");
+  const btnLogout = $("btnLogout");
+
+  if (!btnLogin) return;
+
+  if (user) {
+    userArea.classList.remove("hidden");
+    btnLogin.classList.add("hidden");
+  } else {
+    userArea.classList.add("hidden");
+    btnLogin.classList.remove("hidden");
+  }
+
+  if (btnLogout) {
+    btnLogout.onclick = async () => {
+      await sb.auth.signOut();
+      clearCart();
+      alert("Logged out");
+      window.location.href = "index.html";
+    };
   }
 }
 
-function saveCart(cart) {
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  updateCartUI();
+/* Signup then auto login */
+async function signupAndLogin(email, password) {
+  if (!email || !password) return { error: { message: "Provide email & password" } };
+
+  const { error: signErr } = await sb.auth.signUp({ email, password });
+  if (signErr && signErr.status !== 400) {
+    return { error: signErr };
+  }
+
+  return await sb.auth.signInWithPassword({ email, password });
 }
 
-function addToCart(item) {
-  const cart = loadCart();
-  const found = cart.find((i) => i.id === String(item.id));
-
-  if (found) found.qty += item.qty;
-  else cart.push(item);
-
-  saveCart(cart);
+async function loginWithPassword(email, password) {
+  if (!email || !password) return { error: { message: "Provide email & password" } };
+  return await sb.auth.signInWithPassword({ email, password });
 }
 
-function clearCart() {
-  saveCart([]);
+async function sendResetEmail(email) {
+  if (!email) return { error: { message: "Enter email" } };
+  const redirectTo = `${location.origin}/reset.html`;
+  return await sb.auth.resetPasswordForEmail(email, { redirectTo });
 }
 
-function cartTotalValue() {
-  return loadCart().reduce(
-    (sum, i) => sum + Number(i.price) * Number(i.qty),
-    0
-  );
+/* ==========================================================
+   AUTH MODAL FIXED ✔ (Signup button showing correctly now)
+========================================================== */
+function showAuthModal(mode = "login") {
+  const m = $("loginModal");
+  if (!m) return;
+
+  const title = $("authTitle");
+  const desc = $("authDesc");
+  const msg = $("authMsg");
+  const btn = $("submitAuth");
+  const swSignup = $("switchToSignup");
+  const swLogin = $("switchToLogin");
+
+  title.textContent = mode === "signup" ? "Sign up" : "Login";
+  desc.textContent = mode === "signup"
+    ? "Create an account with email and password."
+    : "Enter your email and password to sign in.";
+
+  msg.textContent = "";
+  $("authEmail").value = "";
+  $("authPass").value = "";
+
+  /* 🔥 THIS IS THE FIX 🔥 */
+  if (mode === "signup") {
+    btn.textContent = "Create Account";
+    swSignup.style.display = "none";
+    swLogin.style.display = "inline";
+  } else {
+    btn.textContent = "Login";
+    swSignup.style.display = "inline";
+    swLogin.style.display = "none";
+  }
+
+  /* Show modal */
+  m.classList.remove("hidden");
+  m.classList.add("flex");
+
+  /* Submit handler */
+  btn.onclick = async () => {
+    const email = $("authEmail").value.trim();
+    const pass = $("authPass").value.trim();
+
+    msg.style.color = "red";
+    msg.textContent = "Processing...";
+
+    if (mode === "signup") {
+      const { error } = await signupAndLogin(email, pass);
+      if (error) return msg.textContent = error.message;
+
+      msg.style.color = "green";
+      msg.textContent = "Signup successful!";
+      m.classList.add("hidden");
+      return window.location.href = "index.html";
+    } else {
+      const { error } = await loginWithPassword(email, pass);
+      if (error) return msg.textContent = error.message;
+
+      msg.style.color = "green";
+      msg.textContent = "Login successful!";
+      m.classList.add("hidden");
+      return window.location.href = "index.html";
+    }
+  };
+
+  $("cancelAuth").onclick = () => m.classList.add("hidden");
+
+  $("btnReset").onclick = async () => {
+    const email = $("authEmail").value.trim();
+    if (!email) return alert("Enter email first");
+    const r = await sendResetEmail(email);
+    if (r.error) alert(r.error.message);
+    else alert("Password reset email sent");
+  };
+
+  swSignup.onclick = (e) => { e.preventDefault(); showAuthModal("signup"); };
+  swLogin.onclick = (e) => { e.preventDefault(); showAuthModal("login"); };
 }
 
+/* ========== Cart UI ========== */
 function updateCartUI() {
   const cart = loadCart();
-
-  if ($("cartCount"))
-    $("cartCount").textContent = cart.reduce((s, i) => s + i.qty, 0);
+  const count = cart.reduce((s,i)=>s + i.qty, 0);
+  if ($("cartCount")) $("cartCount").textContent = count;
 
   const wrap = $("cartItems");
   if (!wrap) return;
 
   wrap.innerHTML = "";
-
   if (!cart.length) {
-    wrap.innerHTML = "Cart is empty";
+    wrap.innerHTML = `<p class="text-sm text-gray-500">Cart empty.</p>`;
   } else {
-    cart.forEach((i) => {
-      const row = document.createElement("div");
-      row.className = "flex justify-between mb-2";
-
-      row.innerHTML = `
+    cart.forEach(i => {
+      const div = document.createElement("div");
+      div.className = "flex items-center justify-between";
+      div.innerHTML = `
         <div>
-          <div class="font-semibold">${escapeHtml(i.title)}</div>
-          <div class="text-sm">${i.qty} × ${rup(i.price)}</div>
+          <div class="font-semibold">${i.title}</div>
+          <div class="text-sm text-gray-500">Qty ${i.qty} × ${rup(i.price)}</div>
         </div>
-        <button class="removeBtn text-red-500" data-id="${i.id}">Remove</button>
-      `;
-
-      wrap.appendChild(row);
+        <div class="text-right">
+          <div class="font-bold">${rup(i.qty * i.price)}</div>
+          <button data-id="${i.id}" class="removeBtn text-sm mt-1">Remove</button>
+        </div>`;
+      wrap.appendChild(div);
     });
 
-    wrap.querySelectorAll(".removeBtn").forEach((btn) => {
-      btn.onclick = () => {
-        saveCart(loadCart().filter((x) => x.id !== btn.dataset.id));
-      };
-    });
+    wrap.querySelectorAll(".removeBtn")
+    .forEach(btn => btn.onclick = () => removeFromCart(btn.dataset.id));
   }
 
-  if ($("cartTotal"))
-    $("cartTotal").textContent = rup(cartTotalValue());
+  if ($("cartTotal")) $("cartTotal").textContent = rup(cartTotal());
 }
 
-/* ========== AUTH UI ========== */
+/* ========== Checkout ========== */
+async function checkout() {
+  const userResp = await sb.auth.getUser();
+  const user = userResp?.data?.user;
+  if (!user) return alert("Please login first"), showAuthModal("login");
 
-async function initAuthUI() {
-  const { data } = await sb.auth.getSession();
-  const user = data?.session?.user || null;
+  const cart = loadCart();
+  if (!cart.length) return alert("Cart empty");
 
-  setUser(user);
+  const order = {
+    user_id: user.id,
+    user_email: user.email,
+    items: cart,
+    total: cartTotal(),
+    created_at: new Date().toISOString()
+  };
 
-  sb.auth.onAuthStateChange((_e, session) => {
-    setUser(session?.user || null);
-  });
-}
+  const { data, error } = await sb.from("orders").insert(order).select("id");
+  if (error) return alert(error.message);
 
-function setUser(user) {
-  const loginBtn = $("btnLogin");
-  const logoutBtn = $("btnLogout");
-
-  if (logoutBtn) logoutBtn.onclick = logoutUser;
-
-  if (user) {
-    loginBtn?.classList.add("hidden");
-    logoutBtn?.classList.remove("hidden");
-  } else {
-    loginBtn?.classList.remove("hidden");
-    logoutBtn?.classList.add("hidden");
-  }
-}
-
-async function logoutUser() {
-  await sb.auth.signOut();
   clearCart();
-  alert("Logged out");
-  location.href = "index.html";
+  alert("Order placed! ID: " + (data?.[0]?.id || "?"));
 }
 
-/* ========== AUTH MODAL ========== */
+/* ========== Products Page ========== */
+let PAGE = 1;
+const PER_PAGE = 6;
+let isLoadingProducts = false;
 
-function showAuthModal(mode = "login") {
-  const m = $("loginModal");
-  if (!m) return;
+async function setupIndexPage() {
+  const grid = $("productsGrid");
+  const search = $("search");
+  const prev = $("prevPage");
+  const next = $("nextPage");
 
-  $("authTitle").textContent = mode === "signup" ? "Create Account" : "Login";
-  $("authDesc").textContent =
-    mode === "signup"
-      ? "Create an account with email & password"
-      : "Enter your login details";
+  async function loadProducts() {
+    if (isLoadingProducts) return;
+    isLoadingProducts = true;
 
-  $("authMsg").textContent = "";
-  $("authEmail").value = "";
-  $("authPass").value = "";
+    const q = (search?.value || "").toLowerCase();
+    const start = (PAGE - 1) * PER_PAGE;
+    const end = start + PER_PAGE - 1;
 
-  m.classList.remove("hidden");
-  m.classList.add("flex");
+    const { data, error } = await sb.from("products")
+      .select("*")
+      .order("id")
+      .range(start, end);
 
-  $("submitAuth").onclick = async () => {
-    const email = $("authEmail").value.trim();
-    const pass = $("authPass").value.trim();
-    const msg = $("authMsg");
-
-    msg.textContent = "Please wait...";
-
-    let result;
-
-    if (mode === "signup") result = await sb.auth.signUp({ email, password: pass });
-    else result = await sb.auth.signInWithPassword({ email, password: pass });
-
-    if (result.error) {
-      msg.textContent = result.error.message;
-      msg.style.color = "red";
-      return;
+    if (error) {
+      grid.innerHTML = `<p class="text-red-500">Error loading products.</p>`;
+      return (isLoadingProducts = false);
     }
 
-    msg.textContent =
-      mode === "signup" ? "Account created!" : "Login successful!";
-    msg.style.color = "green";
+    let items = data;
+    if (q) items = items.filter(p => p.title.toLowerCase().includes(q));
 
-    setTimeout(() => location.reload(), 400);
-  };
+    grid.innerHTML = "";
+    if (!items.length) {
+      grid.innerHTML = `<p class="text-gray-500">No products found.</p>`;
+    } else {
+      items.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "bg-white rounded shadow p-4 flex flex-col";
 
-  $("btnReset").onclick = async () => {
-    const email = $("authEmail").value.trim();
-    if (!email) return alert("Enter email");
-    const r = await sb.auth.resetPasswordForEmail(email);
-    alert(r.error ? r.error.message : "Reset email sent!");
-  };
+        div.innerHTML = `
+          <a href="product.html?id=${p.id}" class="block h-48 mb-3">
+            <img class="w-full h-full object-contain product-img" />
+          </a>
+          <h3 class="font-semibold text-lg">${p.title}</h3>
+          <p class="text-sm text-gray-500">${p.description.substring(0,100)}</p>
+          <div class="mt-3 flex justify-between">
+            <span class="font-bold">${rup(p.price)}</span>
+            <button class="addNow px-3 py-1 border rounded" data-id="${p.id}">Add</button>
+          </div>
+        `;
 
-  $("cancelAuth").onclick = () => m.classList.add("hidden");
+        grid.appendChild(div);
+        setImageWithFallback(div.querySelector(".product-img"), p.image_url, p.title);
+      });
+
+      document.querySelectorAll(".addNow")
+        .forEach(btn => {
+          btn.onclick = async () => {
+            const { data: p } = await sb.from("products").select("*").eq("id", btn.dataset.id).single();
+            addToCart({ id: String(p.id), title: p.title, price: p.price, qty: 1 });
+            alert("Added to cart");
+          };
+        });
+    }
+
+    $("pageInfo").textContent = `Page ${PAGE}`;
+    prev.disabled = PAGE === 1;
+    isLoadingProducts = false;
+  }
+
+  prev.onclick = () => { if (PAGE > 1) PAGE--; loadProducts(); };
+  next.onclick = () => { PAGE++; loadProducts(); };
+  search.oninput = () => { PAGE = 1; loadProducts(); };
+
+  loadProducts();
 }
 
-/* ========== ORDERS PAGE ========== */
+/* ========== Product Page ========== */
+async function setupProductPage() {
+  const id = new URLSearchParams(location.search).get("id");
+  if (!id) return;
 
-async function setupOrdersPage() {
-  const list = $("ordersList");
-  if (!list) return;
+  const { data: p, error } = await sb.from("products").select("*").eq("id", id).single();
+  if (error) return alert("Product not found");
 
-  const { data } = await sb.auth.getUser();
-  const user = data?.user;
+  setImageWithFallback($("productImage"), p.image_url, p.title);
+  $("productTitle").textContent = p.title;
+  $("productDesc").textContent = p.description;
+  $("productPrice").textContent = rup(p.price);
 
-  if (!user) {
-    list.textContent = "Login required.";
-    showAuthModal("login");
-    return;
-  }
-
-  list.textContent = "Loading...";
-
-  const { data: orders, error } = await sb
-    .from("orders")
-    .select("*")
-    .eq("user_id", user.id)
-    .order("id", { ascending: false });
-
-  if (error) {
-    list.textContent = "Error loading orders";
-    return;
-  }
-
-  if (!orders.length) {
-    list.textContent = "No orders found.";
-    return;
-  }
-
-  list.innerHTML = "";
-
-  orders.forEach((o) => {
-    const card = document.createElement("div");
-    card.className = "p-3 bg-white rounded shadow";
-
-    card.innerHTML = `
-      <div class="font-semibold">Order #${o.id}</div>
-      <div>Status: <span class="font-bold">${o.status}</span></div>
-      <div>Total: ${rup(o.total)}</div>
-      <div class="mt-2 text-xs text-gray-500">${o.created_at}</div>
-
-      <details class="mt-2">
-        <summary class="cursor-pointer">Items</summary>
-        <div class="mt-1 pl-3">
-          ${o.items
-            .map(
-              (i) => `<div>${i.qty} × ${escapeHtml(i.title)} — ${rup(i.price)}</div>`
-            )
-            .join("")}
-        </div>
-      </details>
-    `;
-
-    list.appendChild(card);
-  });
+  $("addToCart").onclick = () => {
+    const qty = Number($("quantity").value) || 1;
+    addToCart({ id: String(p.id), title: p.title, price: p.price, qty });
+    alert("Added to cart");
+  };
 }
 
 /* ========== INIT ========== */
-
 document.addEventListener("DOMContentLoaded", async () => {
   await initAuthUI();
   updateCartUI();
 
-  if ($("btnLogin"))
-    $("btnLogin").onclick = () => showAuthModal("login");
+  $("btnCart")?.addEventListener("click", () => $("cartModal").classList.remove("hidden"));
+  $("closeCart")?.addEventListener("click", () => $("cartModal").classList.add("hidden"));
+  $("clearCart")?.addEventListener("click", () => confirm("Clear cart?") && clearCart());
+  $("checkout")?.addEventListener("click", checkout);
 
-  if (location.pathname.includes("orders.html"))
-    setupOrdersPage();
+  $("btnLogin")?.addEventListener("click", () => showAuthModal("login"));
+  $("switchToSignup")?.addEventListener("click", (e)=> { e.preventDefault(); showAuthModal("signup"); });
+  $("switchToLogin")?.addEventListener("click", (e)=> { e.preventDefault(); showAuthModal("login"); });
+  $("cancelAuth")?.addEventListener("click", () => $("loginModal").classList.add("hidden"));
+
+  if (location.pathname.includes("product.html")) setupProductPage();
+  else setupIndexPage();
 });
+ 	
