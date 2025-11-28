@@ -4,7 +4,7 @@
 
 /* ========== Supabase Setup ========== */
 const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ========== Global Variables ========== */
@@ -217,3 +217,4 @@ checkoutBtn?.addEventListener("click", async ()=>{
   cart=[]; saveCart(); updateCartUI();
   cartModal.classList.add("hidden");
 });
+
