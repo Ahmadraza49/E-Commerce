@@ -63,13 +63,18 @@
 
           <div class="flex justify-between">
             <p class="font-semibold text-lg">Order #${order.id}</p>
-            <span class="text-indigo-600 font-semibold">${order.status}</span>
+
+            <!-- FIX #1: null status → Complete -->
+            <span class="text-indigo-600 font-semibold">
+              ${order.status ? order.status : "Complete"}
+            </span>
           </div>
 
           <p class="text-sm text-gray-500">
             ${new Date(order.created_at).toLocaleString()}
           </p>
 
+          <!-- FIX #2: Always $ currency -->
           <p class="mt-2 font-bold">Total: $${order.total}</p>
 
           <!-- ITEMS COLLAPSE -->
@@ -91,7 +96,7 @@
                   <div>
                     <p class="font-semibold">${item.title}</p>
                     <p class="text-sm text-gray-600">
-                      Qty: ${item.qty} × $${item.price} = 
+                      Qty: ${item.qty} × $${item.price} =
                       <span class="font-semibold">$${item.qty * item.price}</span>
                     </p>
                   </div>
