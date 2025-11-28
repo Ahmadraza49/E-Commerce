@@ -1,41 +1,52 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Product Details</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Product — MyShop</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
-<body class="bg-gray-100 p-4">
+<body class="bg-gray-50 min-h-screen text-gray-800">
 
-  <a href="index.html" class="underline">&larr; Back</a>
+  <header class="bg-white shadow">
+    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="index.html" class="text-xl font-bold">MyShop</a>
 
-  <div class="max-w-3xl mx-auto bg-white p-4 rounded shadow mt-4">
-
-    <img id="productImage" class="w-full h-72 object-contain border rounded mb-3">
-
-    <h1 id="productTitle" class="text-2xl font-bold mb-1"></h1>
-    <p id="productDesc" class="mb-3"></p>
-
-    <span id="productCategory"
-      class="inline-block bg-gray-200 px-3 py-1 rounded text-sm cursor-pointer mb-3 hidden"></span>
-
-    <p class="font-semibold text-xl mb-3">
-      Price: <span id="productPrice"></span>
-    </p>
-
-    <div class="flex items-center gap-3 mb-4">
-      <input id="quantity" type="number" min="1" value="1"
-        class="border p-2 w-20">
-      <button id="addToCart"
-        class="bg-blue-600 text-white px-4 py-2 rounded">Add to Cart</button>
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="px-3 py-1 border rounded">Products</a>
+        <button id="btnCart" class="px-3 py-1 border rounded">Cart</button>
+      </div>
     </div>
+  </header>
 
-    <h3 class="font-semibold mb-2">Designs</h3>
-    <div id="designGallery" class="flex flex-wrap gap-2"></div>
-  </div>
+  <main class="container mx-auto px-4 py-8">
+    <div id="productWrap" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+
+      <div id="imgWrap" class="bg-white rounded p-4 flex items-center justify-center">
+        <img id="productImage" src="" class="max-h-96 object-contain"/>
+      </div>
+
+      <div class="bg-white rounded p-6">
+        <h1 id="productTitle" class="text-2xl font-semibold mb-2"></h1>
+        <p id="productDesc" class="mb-4 text-sm text-gray-600"></p>
+
+        <div class="mb-4">
+          <span class="text-3xl font-bold" id="productPrice">₹0</span>
+        </div>
+
+        <div class="flex gap-3 items-center">
+          <input id="quantity" type="number" value="1" min="1"
+                 class="w-20 border px-3 py-2 rounded"/>
+          <button id="addToCart" class="px-4 py-2 bg-indigo-600 text-white rounded">
+            Add to Cart
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
 
   <script src="script.js"></script>
 </body>
