@@ -4,138 +4,108 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MyShop — Products</title>
-
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS v2 -->
 
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body class="bg-gray-50 min-h-screen text-gray-800">
-
-  <!-- HEADER -->
   <header class="bg-white shadow">
     <div class="container mx-auto px-4 py-4 flex items-center justify-between">
       <a href="index.html" class="text-xl font-bold">MyShop</a>
 
       <div class="flex items-center gap-3">
-
-        <!-- USER AREA -->
         <div id="userArea" class="hidden items-center gap-3">
           <span id="userEmail" class="text-sm"></span>
-          <a href="orders.html" class="px-3 py-1 border rounded">My Orders</a>
           <button id="btnLogout" class="px-3 py-1 border rounded">Logout</button>
         </div>
-
-        <!-- LOGIN BUTTON -->
-        <button id="btnLogin" class="px-3 py-1 bg-indigo-600 text-white rounded">
-          Login / Signup
-        </button>
-
-        <!-- CART -->
+        <button id="btnLogin" class="px-3 py-1 bg-indigo-600 text-white rounded">Login / Signup</button>
         <button id="btnCart" class="relative px-3 py-1 border rounded">
-          Cart
-          <span id="cartCount"
-            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1">
-            0
-          </span>
+          Cart <span id="cartCount" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1">0</span>
         </button>
-
       </div>
     </div>
   </header>
 
-  <!-- MAIN PRODUCTS -->
   <main class="container mx-auto px-4 py-8">
-
-    <!-- SEARCH -->
     <section class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-semibold">Products</h1>
-      <input id="search" type="text" placeholder="Search products..."
-             class="border px-3 py-2 rounded w-64"/>
+      <div>
+        <input id="search" type="text" placeholder="Search products..." class="border px-3 py-2 rounded w-64"/>
+      </div>
     </section>
 
-    <!-- PRODUCT GRID -->
-    <section id="productsGrid"
-      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></section>
+    <section id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Product cards will be injected here -->
+    </section>
 
-    <!-- PAGINATION -->
     <nav class="mt-8 flex justify-center gap-3">
       <button id="prevPage" class="px-3 py-1 border rounded">Prev</button>
       <span id="pageInfo" class="px-3 py-1"></span>
       <button id="nextPage" class="px-3 py-1 border rounded">Next</button>
     </nav>
-
   </main>
 
-  <!-- CART MODAL -->
-  <div id="cartModal"
-       class="fixed inset-0 bg-black/40 hidden items-end sm:items-center justify-center">
+  <!-- CART SIDEBAR / MODAL -->
+  <div id="cartModal" class="fixed inset-0 bg-black/40 hidden items-end sm:items-center justify-center">
     <div class="bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-xl p-4 max-h-[90vh] overflow-auto">
-
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-semibold">Your Cart</h2>
         <button id="closeCart" class="px-3 py-1">Close</button>
       </div>
-
       <div id="cartItems" class="space-y-4"></div>
-
       <div class="mt-4 flex justify-between items-center">
         <div>
           <span class="text-sm">Total:</span>
           <div id="cartTotal" class="text-xl font-bold">₹0</div>
         </div>
-
         <div class="flex gap-2">
           <button id="clearCart" class="px-3 py-2 border rounded">Clear</button>
-          <button id="checkout" class="px-3 py-2 bg-indigo-600 text-white rounded">
-            Checkout
-          </button>
+          <button id="checkout" class="px-3 py-2 bg-indigo-600 text-white rounded">Checkout</button>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- LOGIN / SIGNUP MODAL -->
-  <div id="loginModal"
-       class="fixed inset-0 bg-black/40 hidden items-center justify-center">
-    <div class="bg-white w-full max-w-md rounded-xl p-6">
+  <!-- LOGIN MODAL -->
+    <!-- LOGIN MODAL (Email + Password) -->
+  <div id="loginModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
+  <div class="bg-white w-full max-w-md rounded-xl p-6">
+    <h3 id="authTitle" class="text-lg font-semibold mb-2">Login</h3>
+    <p id="authDesc" class="text-sm mb-4">Enter your email and password.</p>
 
-      <h3 id="authTitle" class="text-lg font-semibold mb-2">Login</h3>
-      <p id="authDesc" class="text-sm mb-4">Enter your email and password.</p>
+    <input id="authEmail" type="email" placeholder="you@example.com" class="w-full border px-3 py-2 rounded mb-3" />
+    <input id="authPass" type="password" placeholder="Password (min 6 chars)" class="w-full border px-3 py-2 rounded mb-3" />
 
-      <input id="authEmail" type="email" placeholder="you@example.com"
-             class="w-full border px-3 py-2 rounded mb-3" />
-
-      <input id="authPass" type="password" placeholder="Password"
-             class="w-full border px-3 py-2 rounded mb-3" />
-
-      <div class="flex justify-between items-center">
-        <div class="text-sm">
-          <a href="#" id="switchToSignup">Sign up</a>
-          <a href="#" id="switchToLogin" style="display:none">Login</a>
-        </div>
-
-        <div class="flex gap-2">
-          <button id="cancelAuth" class="px-3 py-2 border rounded">Cancel</button>
-          <button id="submitAuth" class="px-3 py-2 bg-indigo-600 text-white rounded">
-            Login
-          </button>
-        </div>
+    <div class="flex justify-between items-center">
+      <div class="text-sm">
+        <a href="#" id="switchToSignup">Sign up</a> 
+        <a href="#" id="switchToLogin" style="display:none">Login</a>
       </div>
-
-      <button id="btnReset" class="mt-3 w-full bg-yellow-500 text-white py-2 rounded">
-        Reset Password
-      </button>
-
-      <p id="authMsg" class="mt-3 text-sm text-red-600"></p>
+      <div class="flex gap-2">
+        <button id="cancelAuth" class="px-3 py-2 border rounded">Cancel</button>
+        <button id="submitAuth" class="px-3 py-2 bg-indigo-600 text-white rounded">Login</button>
+      </div>
     </div>
-  </div>
 
-  <!-- MAIN SCRIPT -->
+    <!-- RESET BUTTON ADDED HERE -->
+    <button id="btnReset" class="mt-3 w-full bg-yellow-500 text-white py-2 rounded">
+      Reset Password
+    </button>
+
+    <p id="authMsg" class="mt-3 text-sm text-red-600"></p>
+  </div>
+</div>
+
+
+  <!-- Keep ONE Supabase script only -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+
   <script src="script.js"></script>
-
 </body>
 </html>
+
+
+
+
