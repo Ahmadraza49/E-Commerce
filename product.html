@@ -12,84 +12,45 @@
 <header class="bg-white shadow">
   <div class="container mx-auto px-4 py-4 flex items-center justify-between">
     <a href="index.html" class="text-xl font-bold">MyShop</a>
-    <div class="flex items-center gap-3">
-      <a href="index.html" class="px-3 py-1 border rounded">Products</a>
-      <button id="btnCartOpen" class="px-3 py-1 border rounded">Cart</button>
-    </div>
+    <button id="btnCart" class="px-3 py-1 border rounded">Cart</button>
   </div>
 </header>
 
 <main class="container mx-auto px-4 py-8">
-  <div id="productWrap" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
-    <div id="imgWrap" class="bg-white rounded p-4 flex items-center justify-center">
-      <img id="productImage" src="" class="max-h-96 object-contain"/>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+
+    <!-- 🟢 IMAGE -->
+    <div class="bg-white p-4 rounded">
+      <img id="productImage" class="w-full max-h-96 object-contain" />
     </div>
 
-    <div class="bg-white rounded p-6">
-      <h1 id="productTitle" class="text-2xl font-semibold mb-2"></h1>
-      <p id="productDesc" class="mb-4 text-sm text-gray-600"></p>
+    <!-- 🟢 DETAILS -->
+    <div class="bg-white p-6 rounded">
 
-      <div class="mb-4">
-        <span class="text-3xl font-bold" id="productPrice">₹0</span>
-      </div>
+      <h1 id="productTitle" class="text-2xl font-bold mb-2"></h1>
+      <p id="productDesc" class="text-gray-600 mb-4"></p>
 
-      <div class="flex gap-3 items-center">
+      <h2 id="productPrice" class="text-3xl font-bold mb-4"></h2>
+
+      <div class="flex items-center gap-3 mb-6">
         <input id="quantity" type="number" value="1" min="1"
-               class="w-20 border px-3 py-2 rounded"/>
-
-        <button id="btnAddToCart"
-          class="px-4 py-2 bg-indigo-600 text-white rounded">
+               class="w-20 border px-3 py-2 rounded" />
+        <button id="addToCart"
+          class="px-6 py-2 bg-indigo-600 text-white rounded">
           Add to Cart
         </button>
       </div>
+
     </div>
 
   </div>
+
 </main>
 
+<!-- Your script.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("id");
-
-  const product = JSON.parse(localStorage.getItem("selectedProduct"));
-
-  if (!product) {
-    document.getElementById("productWrap").innerHTML =
-      "<p class='text-center text-red-500'>Product not found!</p>";
-    return;
-  }
-
-  // Fill data
-  document.getElementById("productImage").src = product.image_url;
-  document.getElementById("productTitle").innerText = product.title;
-  document.getElementById("productDesc").innerText = product.description;
-  document.getElementById("productPrice").innerText = "₹" + product.price;
-
-  // Button EXISTS now 🔥
-  document.getElementById("btnAddToCart").onclick = () => {
-    const qty = parseInt(document.getElementById("quantity").value);
-
-    addToCart({
-      id: product.id,
-      title: product.title,
-      price: product.price,
-      img: product.image_url,
-      qty: qty
-    });
-
-    alert("Added to cart!");
-  };
-
-  document.getElementById("btnCartOpen").onclick = openCartModal;
-
-});
-</script>
 
 </body>
 </html>
