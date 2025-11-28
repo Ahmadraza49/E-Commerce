@@ -62,7 +62,7 @@ function renderProducts(){
         <img src="${p.image_url}" class="h-48 w-full object-contain mb-2" />
         <h3 class="font-semibold">${p.title}</h3>
         <p class="text-gray-500">${p.description.substring(0,50)}...</p>
-        <p class="text-xl font-bold mt-2">₹${p.price}</p>
+        <p class="text-xl font-bold mt-2">${p.price}</p>
         <a href="product.html?id=${p.id}" class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded text-center">View</a>
       </div>
     `).join("");
@@ -102,7 +102,7 @@ function updateCartUI(){
   });
 
   cartCount.textContent = cart.length;
-  cartTotal.textContent = `₹${total}`;
+  cartTotal.textContent = `${total}`;
 
   document.querySelectorAll("#cartItems button").forEach(btn=>{
     btn.addEventListener("click",(e)=>{ 
@@ -145,7 +145,7 @@ async function setupProductPage(){
 
   productTitleEl.textContent = product.title;
   productDescEl.textContent = product.description;
-  productPriceEl.textContent = `₹${product.price}`;
+  productPriceEl.textContent = `${product.price}`;
 
   // Parse images safely
   let images = [];
@@ -208,3 +208,4 @@ document.getElementById("checkout")?.addEventListener("click", async ()=>{
   cart=[]; saveCart(); updateCartUI();
   document.getElementById("cartModal")?.classList.add("hidden");
 });
+
