@@ -1,454 +1,275 @@
-  /* =======================================================
-    script.js — Cart + Auth + Products + Orders (FINAL)
-    Email UI HIDDEN ✔
-    Orders Work ✔
-    Cart Work ✔
-  ======================================================= */
+/* =======================================================
+   script.js — Cart + Auth + Products + Orders (FINAL)
+======================================================= */
 
-  /* ========== Supabase Setup ========== */
-  const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
-  const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA";
+/* ========== Supabase Setup ========== */
+const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA";
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  /* ========== Utilities ========== */
-  const $ = (id) => document.getElementById(id);
-  const rup = (n) => "₹" + Number(n || 0).toLocaleString();
+/* Utilities */
+const $ = (id) => document.getElementById(id);
+const rup = (n) => "₹" + Number(n || 0).toLocaleString();
 
-  /* Image fallback */
-  function setImageWithFallback(imgEl, url, title) {
-    const fallback = `https://placehold.co/600x400?text=${encodeURIComponent(
-      title || "Product"
-    )}&font=roboto`;
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
 
-    if (!imgEl) return;
+/* Image fallback handler */
+function setImageWithFallback(img, url, title) {
+  if (!img) return;
 
-    if (!url) {
-      imgEl.src = fallback;
-      return;
-    }
+  const fallback = `https://placehold.co/300x200?text=${encodeURIComponent(
+    title
+  )}`;
 
-    imgEl.src = url;
-    imgEl.onerror = () => {
-      imgEl.onerror = null;
-      imgEl.src = fallback;
-    };
+  img.src = url || fallback;
+  img.onerror = () => {
+    img.src = fallback;
+  };
+}
+
+/* ========== CART LOGIC ========== */
+const CART_KEY = "myshop_cart_v1";
+
+function loadCart() {
+  try {
+    return JSON.parse(localStorage.getItem(CART_KEY)) || [];
+  } catch {
+    return [];
   }
-
-  /* ========== Cart (LocalStorage) ========== */
-
-  const CART_KEY = "myshop_cart_v1";
-
-  function loadCart() {
-    try {
-      return JSON.parse(localStorage.getItem(CART_KEY)) || [];
-    } catch {
-      return [];
-    }
-  }
-
-  function saveCart(cart) {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
-    updateCartUI();
-  }
-
-  function addToCart(item) {
-    const cart = loadCart();
-    const found = cart.find((i) => i.id === String(item.id));
-
-    if (found) found.qty += item.qty;
-    else cart.push(item);
-
-    saveCart(cart);
-  }
-
-  function clearCart() {
-    saveCart([]);
-  }
-
-  function cartTotalValue() {
-    return loadCart().reduce(
-      (sum, i) => sum + Number(i.price) * Number(i.qty),
-      0
-    );
-  }
-
-  /* ========== AUTH UI (Email HIDDEN) ========== */
-
-  async function initAuthUI() {
-    const { data } = await sb.auth.getSession();
-    setUser(data?.session?.user || null);
-
-    sb.auth.onAuthStateChange((_e, session) =>
-      setUser(session?.user || null)
-    );
-  }
-
-  function setUser(user) {
-    const userArea = $("userArea");
-    const btnLogin = $("btnLogin");
-    const btnLogout = $("btnLogout");
-
-    // EMAIL HIDE ALWAYS
-    if ($("userEmail")) {
-      $("userEmail").textContent = "";
-      $("userEmail").style.display = "none";
-    }
-
-    if (user) {
-      userArea?.classList.remove("hidden");
-      btnLogin?.classList.add("hidden");
-    } else {
-      userArea?.classList.add("hidden");
-      btnLogin?.classList.remove("hidden");
-    }
-
-    btnLogout.onclick = async () => {
-      await sb.auth.signOut();
-      clearCart();
-      alert("Logged out");
-      window.location.href = "index.html";
-    };
-  }
-
-  /* ========== AUTH Helpers ========== */
-
-  async function signupAndLogin(email, password) {
-    const { error: signErr } = await sb.auth.signUp({ email, password });
-    if (signErr && signErr.status !== 400) return { error: signErr };
-
-    return await sb.auth.signInWithPassword({ email, password });
-  }
-
-  async function loginWithPassword(email, password) {
-    return await sb.auth.signInWithPassword({ email, password });
-  }
-
-  async function sendResetEmail(email) {
-    const redirectTo = `${location.origin}/reset.html`;
-    return await sb.auth.resetPasswordForEmail(email, { redirectTo });
-  }
-
-  /* ========== AUTH MODAL ========== */
-
-  function showAuthModal(mode = "login") {
-    const m = $("loginModal");
-    if (!m) return;
-
-    $("authTitle").textContent =
-      mode === "signup" ? "Create Account" : "Login";
-
-    $("authDesc").textContent =
-      mode === "signup"
-        ? "Create an account with email & password."
-        : "Enter your login details.";
-
-    $("authMsg").textContent = "";
-    $("authEmail").value = "";
-    $("authPass").value = "";
-
-    $("submitAuth").textContent =
-      mode === "signup" ? "Sign Up" : "Login";
-
-    $("switchToSignup").style.display =
-      mode === "signup" ? "none" : "inline";
-
-    $("switchToLogin").style.display =
-      mode === "signup" ? "inline" : "none";
-
-    m.classList.remove("hidden");
-    m.classList.add("flex");
-
-    $("submitAuth").onclick = async () => {
-      const email = $("authEmail").value.trim();
-      const pass = $("authPass").value.trim();
-      const msg = $("authMsg");
-
-      msg.textContent = "Please wait...";
-
-      let result =
-        mode === "signup"
-          ? await signupAndLogin(email, pass)
-          : await loginWithPassword(email, pass);
-
-      if (result.error) {
-        msg.textContent = result.error.message;
-        msg.style.color = "red";
-        return;
-      }
-
-      msg.textContent =
-        mode === "signup" ? "Account created!" : "Login successful!";
-      msg.style.color = "green";
-
-      setTimeout(() => (m.classList.add("hidden"), location.reload()), 300);
-    };
-
-    $("cancelAuth").onclick = () => m.classList.add("hidden");
-
-    $("btnReset").onclick = async () => {
-      const email = $("authEmail").value.trim();
-      if (!email) return alert("Enter email first");
-      const r = await sendResetEmail(email);
-      alert(r.error ? r.error.message : "Reset email sent!");
-    };
-
-    $("switchToSignup").onclick = () => showAuthModal("signup");
-    $("switchToLogin").onclick = () => showAuthModal("login");
-  }
-
-  /* ========== CART UI ========== */
-
-  function updateCartUI() {
-    const cart = loadCart();
-
-    $("cartCount").textContent = cart.reduce(
-      (s, i) => s + Number(i.qty),
-      0
-    );
-
-    const wrap = $("cartItems");
-    if (!wrap) return;
-
-    wrap.innerHTML = "";
-
-    if (!cart.length) {
-      wrap.innerHTML = `<p class="text-gray-500">Cart is empty</p>`;
-    } else {
-      cart.forEach((i) => {
-        const div = document.createElement("div");
-        div.className = "flex justify-between items-center mb-2";
-
-        div.innerHTML = `
-          <div>
-            <div class="font-semibold">${escapeHtml(i.title)}</div>
-            <div class="text-sm">Qty ${i.qty} × ${rup(i.price)}</div>
-          </div>
-          <button class="removeBtn text-red-500" data-id="${i.id}">
-            Remove
-          </button>
-        `;
-
-        wrap.appendChild(div);
-      });
-
-      wrap.querySelectorAll(".removeBtn").forEach((b) => {
-        b.onclick = () => {
-          const newCart = loadCart().filter(
-            (x) => x.id !== b.dataset.id
-          );
-          saveCart(newCart);
-        };
-      });
-    }
-
-    $("cartTotal").textContent = rup(cartTotalValue());
-  }
-
-  function escapeHtml(str) {
-    return str
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
-  }
-
-  /* ========== CHECKOUT — SAVE ORDER ========== */
-
-  async function checkoutHandler() {
-    const { data } = await sb.auth.getUser();
-    const user = data?.user;
-
-    if (!user)
-      return showAuthModal("login");
-
-    const cart = loadCart();
-    if (!cart.length)
-      return alert("Cart empty");
-
-    const order = {
-      user_id: user.id,
-      items: cart,
-      total: cartTotalValue(),
-      status: "Pending",
-      created_at: new Date().toISOString(),
-    };
-
-    const { error } = await sb.from("orders").insert(order);
-    if (error) {
-      alert("Order failed");
-      return;
-    }
-
-    clearCart();
-    alert("Order placed successfully!");
-  }
-
-  /* ========== PRODUCTS PAGE (index) ========== */
-
-  let PAGE = 1;
-  const PER_PAGE = 6;
-
-  async function setupIndexPage() {
-    loadProducts();
-
-    $("search").oninput = () => {
-      PAGE = 1;
-      loadProducts();
-    };
-
-    $("prevPage").onclick = () => {
-      if (PAGE > 1) PAGE--;
-      loadProducts();
-    };
-
-    $("nextPage").onclick = () => {
-      PAGE++;
-      loadProducts();
-    };
-  }
-
-  async function loadProducts() {
-    const grid = $("productsGrid");
-    const q = ($("search").value || "").toLowerCase();
-
-    const { data, error } = await sb
-      .from("products")
-      .select("*")
-      .order("id");
-
-    if (error) {
-      grid.innerHTML = "Error loading products";
-      return;
-    }
-
-    let list = data;
-
-    if (q) list = list.filter((p) =>
-      p.title.toLowerCase().includes(q)
-    );
-
-    const start = (PAGE - 1) * PER_PAGE;
-    const items = list.slice(start, start + PER_PAGE);
-
-    grid.innerHTML = "";
-
-    if (!items.length) {
-      grid.innerHTML = `<p>No products found</p>`;
-      return;
-    }
-
-    items.forEach((p) => {
-      const div = document.createElement("div");
-      div.className = "bg-white shadow rounded p-3";
-
-      div.innerHTML = `
-        <a href="product.html?id=${p.id}">
-          <img class="w-full h-48 object-contain product-img mb-2"/>
-        </a>
-        <h3 class="font-semibold">${escapeHtml(p.title)}</h3>
-        <p class="text-sm">${escapeHtml(
-          (p.description || "").slice(0, 80)
-        )}</p>
-
-        <div class="flex justify-between mt-3">
-          <span class="font-bold">${rup(p.price)}</span>
-          <button class="addNow px-3 py-1 border rounded" data-id="${p.id}">Add</button>
+}
+
+function saveCart(cart) {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  updateCartUI();
+}
+
+function addToCart(item) {
+  const cart = loadCart();
+  const found = cart.find((i) => i.id === String(item.id));
+
+  if (found) found.qty += item.qty;
+  else cart.push(item);
+
+  saveCart(cart);
+}
+
+function clearCart() {
+  saveCart([]);
+}
+
+function cartTotalValue() {
+  return loadCart().reduce(
+    (sum, i) => sum + Number(i.price) * Number(i.qty),
+    0
+  );
+}
+
+function updateCartUI() {
+  const cart = loadCart();
+
+  if ($("cartCount"))
+    $("cartCount").textContent = cart.reduce((s, i) => s + i.qty, 0);
+
+  const wrap = $("cartItems");
+  if (!wrap) return;
+
+  wrap.innerHTML = "";
+
+  if (!cart.length) {
+    wrap.innerHTML = "Cart is empty";
+  } else {
+    cart.forEach((i) => {
+      const row = document.createElement("div");
+      row.className = "flex justify-between mb-2";
+
+      row.innerHTML = `
+        <div>
+          <div class="font-semibold">${escapeHtml(i.title)}</div>
+          <div class="text-sm">${i.qty} × ${rup(i.price)}</div>
         </div>
+        <button class="removeBtn text-red-500" data-id="${i.id}">Remove</button>
       `;
 
-      grid.appendChild(div);
-
-      setImageWithFallback(
-        div.querySelector(".product-img"),
-        p.image_url,
-        p.title
-      );
+      wrap.appendChild(row);
     });
 
-    document
-      .querySelectorAll(".addNow")
-      .forEach((btn) => {
-        btn.onclick = async () => {
-          const { data: p } = await sb
-            .from("products")
-            .select("*")
-            .eq("id", btn.dataset.id)
-            .single();
-
-          addToCart({
-            id: String(p.id),
-            title: p.title,
-            price: p.price,
-            qty: 1,
-          });
-
-          alert("Added to cart");
-        };
-      });
+    wrap.querySelectorAll(".removeBtn").forEach((btn) => {
+      btn.onclick = () => {
+        saveCart(loadCart().filter((x) => x.id !== btn.dataset.id));
+      };
+    });
   }
 
-  /* ========== PRODUCT PAGE ========== */
+  if ($("cartTotal"))
+    $("cartTotal").textContent = rup(cartTotalValue());
+}
 
-  async function setupProductPage() {
-    const id = new URLSearchParams(location.search).get("id");
-    if (!id) return;
+/* ========== AUTH UI ========== */
 
-    const { data: p } = await sb
-      .from("products")
-      .select("*")
-      .eq("id", id)
-      .single();
+async function initAuthUI() {
+  const { data } = await sb.auth.getSession();
+  const user = data?.session?.user || null;
 
-    $("productTitle").textContent = p.title;
-    $("productDesc").textContent = p.description;
-    $("productPrice").textContent = rup(p.price);
+  setUser(user);
 
-    setImageWithFallback($("productImage"), p.image_url, p.title);
+  sb.auth.onAuthStateChange((_e, session) => {
+    setUser(session?.user || null);
+  });
+}
 
-    $("addToCart").onclick = () => {
-      const qty = Number($("quantity").value) || 1;
+function setUser(user) {
+  const loginBtn = $("btnLogin");
+  const logoutBtn = $("btnLogout");
 
-      addToCart({
-        id: String(p.id),
-        title: p.title,
-        price: p.price,
-        qty,
-      });
+  if (logoutBtn) logoutBtn.onclick = logoutUser;
 
-      alert("Added to cart");
-    };
+  if (user) {
+    loginBtn?.classList.add("hidden");
+    logoutBtn?.classList.remove("hidden");
+  } else {
+    loginBtn?.classList.remove("hidden");
+    logoutBtn?.classList.add("hidden");
+  }
+}
+
+async function logoutUser() {
+  await sb.auth.signOut();
+  clearCart();
+  alert("Logged out");
+  location.href = "index.html";
+}
+
+/* ========== AUTH MODAL ========== */
+
+function showAuthModal(mode = "login") {
+  const m = $("loginModal");
+  if (!m) return;
+
+  $("authTitle").textContent = mode === "signup" ? "Create Account" : "Login";
+  $("authDesc").textContent =
+    mode === "signup"
+      ? "Create an account with email & password"
+      : "Enter your login details";
+
+  $("authMsg").textContent = "";
+  $("authEmail").value = "";
+  $("authPass").value = "";
+
+  m.classList.remove("hidden");
+  m.classList.add("flex");
+
+  $("submitAuth").onclick = async () => {
+    const email = $("authEmail").value.trim();
+    const pass = $("authPass").value.trim();
+    const msg = $("authMsg");
+
+    msg.textContent = "Please wait...";
+
+    let result;
+
+    if (mode === "signup") result = await sb.auth.signUp({ email, password: pass });
+    else result = await sb.auth.signInWithPassword({ email, password: pass });
+
+    if (result.error) {
+      msg.textContent = result.error.message;
+      msg.style.color = "red";
+      return;
+    }
+
+    msg.textContent =
+      mode === "signup" ? "Account created!" : "Login successful!";
+    msg.style.color = "green";
+
+    setTimeout(() => location.reload(), 400);
+  };
+
+  $("btnReset").onclick = async () => {
+    const email = $("authEmail").value.trim();
+    if (!email) return alert("Enter email");
+    const r = await sb.auth.resetPasswordForEmail(email);
+    alert(r.error ? r.error.message : "Reset email sent!");
+  };
+
+  $("cancelAuth").onclick = () => m.classList.add("hidden");
+}
+
+/* ========== ORDERS PAGE ========== */
+
+async function setupOrdersPage() {
+  const list = $("ordersList");
+  if (!list) return;
+
+  const { data } = await sb.auth.getUser();
+  const user = data?.user;
+
+  if (!user) {
+    list.textContent = "Login required.";
+    showAuthModal("login");
+    return;
   }
 
-  /* ========== INIT ========== */
+  list.textContent = "Loading...";
 
-  document.addEventListener("DOMContentLoaded", async () => {
-    await initAuthUI();
-    updateCartUI();
+  const { data: orders, error } = await sb
+    .from("orders")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("id", { ascending: false });
 
-    $("btnCart").onclick = () =>
-      $("cartModal").classList.remove("hidden");
+  if (error) {
+    list.textContent = "Error loading orders";
+    return;
+  }
 
-    $("closeCart").onclick = () =>
-      $("cartModal").classList.add("hidden");
+  if (!orders.length) {
+    list.textContent = "No orders found.";
+    return;
+  }
 
-    $("clearCart").onclick = () => {
-      if (confirm("Clear cart?")) clearCart();
-    };
+  list.innerHTML = "";
 
-    $("checkout").onclick = checkoutHandler;
+  orders.forEach((o) => {
+    const card = document.createElement("div");
+    card.className = "p-3 bg-white rounded shadow";
 
+    card.innerHTML = `
+      <div class="font-semibold">Order #${o.id}</div>
+      <div>Status: <span class="font-bold">${o.status}</span></div>
+      <div>Total: ${rup(o.total)}</div>
+      <div class="mt-2 text-xs text-gray-500">${o.created_at}</div>
+
+      <details class="mt-2">
+        <summary class="cursor-pointer">Items</summary>
+        <div class="mt-1 pl-3">
+          ${o.items
+            .map(
+              (i) => `<div>${i.qty} × ${escapeHtml(i.title)} — ${rup(i.price)}</div>`
+            )
+            .join("")}
+        </div>
+      </details>
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+/* ========== INIT ========== */
+
+document.addEventListener("DOMContentLoaded", async () => {
+  await initAuthUI();
+  updateCartUI();
+
+  if ($("btnLogin"))
     $("btnLogin").onclick = () => showAuthModal("login");
 
-    $("switchToSignup")?.addEventListener("click", () =>
-      showAuthModal("signup")
-    );
-
-    $("switchToLogin")?.addEventListener("click", () =>
-      showAuthModal("login")
-    );
-
-    if (location.pathname.includes("product.html"))
-      setupProductPage();
-    else setupIndexPage();
-  });
+  if (location.pathname.includes("orders.html"))
+    setupOrdersPage();
+});
