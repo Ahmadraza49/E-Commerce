@@ -14,7 +14,8 @@ let currentPage = 1;
 const itemsPerPage = 6;
 
 /* ========================================================
-   ========== INIT ========== */
+   ========== INIT ==========
+======================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
   await checkAuth();
   if (document.getElementById("productsGrid")) loadProducts();
@@ -23,23 +24,37 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /* ========================================================
-   ========== AUTH ========== */
+   ========== AUTH ==========
+======================================================== */
 async function checkAuth() {
   const { data } = await sb.auth.getUser();
   const userArea = document.getElementById("userArea");
+  const userEmail = document.getElementById("userEmail");
   const btnLogin = document.getElementById("btnLogin");
+  const btnLogout = document.getElementById("btnLogout");
 
   if (data.user) {
-    if(userArea) userArea.style.display = "none"; // hide email display
-    if(btnLogin) btnLogin.style.display = "none";
+    if(userArea) userArea.style.display = "flex";        // show user area
+    if(userEmail) userEmail.style.display = "none";      // hide only email
+    if(btnLogin) btnLogin.style.display = "none";        // hide login
+    if(btnLogout) btnLogout.style.display = "inline-block"; // show logout
   } else {
-    if(userArea) userArea.style.display = "none";
-    if(btnLogin) btnLogin.style.display = "inline-block";
+    if(userArea) userArea.style.display = "none";        // hide entire area
+    if(btnLogin) btnLogin.style.display = "inline-block"; 
+    if(btnLogout) btnLogout.style.display = "none";      // hide logout
   }
 }
 
+// Logout button
+document.getElementById("btnLogout")?.addEventListener("click", async () => {
+  await sb.auth.signOut();
+  checkAuth();
+  location.reload();
+});
+
 /* ========================================================
-   ========== PRODUCTS ========== */
+   ========== PRODUCTS ==========
+======================================================== */
 async function loadProducts() {
   const { data, error } = await sb.from("products").select("*");
   if(error){ console.error(error); return; }
@@ -77,7 +92,8 @@ document.getElementById("prevPage")?.addEventListener("click", ()=>{ if(currentP
 document.getElementById("nextPage")?.addEventListener("click", ()=>{ currentPage++; renderProducts(); } );
 
 /* ========================================================
-   ========== CART ========== */
+   ========== CART ==========
+======================================================== */
 function saveCart(){ localStorage.setItem("cart",JSON.stringify(cart)); }
 
 function updateCartUI(){
@@ -95,7 +111,7 @@ function updateCartUI(){
     div.innerHTML=`<div>
       <p class="font-semibold">${item.title}</p>
       <p class="text-sm text-gray-500">$${item.price} × ${item.qty}</p>
-      ${item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mt-1"/>` : ""}
+      ${item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mt-1"/>` : "" }
       </div>
       <button data-index="${index}" class="px-2 py-1 border rounded">Remove</button>`;
     cartItems.appendChild(div);
@@ -119,7 +135,8 @@ document.getElementById("closeCart")?.addEventListener("click", ()=>document.get
 document.getElementById("clearCart")?.addEventListener("click", ()=>{ cart=[]; saveCart(); updateCartUI(); });
 
 /* ========================================================
-   ========== PRODUCT PAGE ========== */
+   ========== PRODUCT PAGE ==========
+======================================================== */
 async function setupProductPage(){
   const addToCartBtn = document.getElementById("addToCart");
   if(!addToCartBtn) return;
@@ -147,7 +164,6 @@ async function setupProductPage(){
   productDescEl.textContent = product.description;
   productPriceEl.textContent = `$${product.price}`;
 
-  // Parse images safely
   let images = [];
   if (Array.isArray(product.design_images)) images = product.design_images;
   else if (typeof product.design_images === "string") {
@@ -188,7 +204,8 @@ async function setupProductPage(){
 }
 
 /* ========================================================
-   ========== CHECKOUT ========== */
+   ========== CHECKOUT ==========
+======================================================== */
 document.getElementById("checkout")?.addEventListener("click", async ()=>{
   const user = (await sb.auth.getUser()).data.user;
   if(!user){ alert("Login first"); return; }
