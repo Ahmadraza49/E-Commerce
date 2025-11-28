@@ -1,68 +1,41 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Reset Password</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-
   <div class="bg-white p-6 rounded-xl shadow-md w-full max-w-sm">
     <h2 class="text-2xl font-bold mb-4 text-center">Reset Password</h2>
-
-    <input id="newPass" type="password"
-      class="w-full border p-2 rounded mb-3"
-      placeholder="Enter new password">
-
-    <button id="btnUpdate"
-      class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
-      Update Password
-    </button>
-
+    <input id="newPass" type="password" class="w-full border p-2 rounded mb-3" placeholder="Enter new password">
+    <button id="btnUpdate" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Update Password</button>
     <p id="msg" class="text-center mt-3 text-red-600 font-semibold"></p>
   </div>
 
   <script>
-    /* ----- SUPABASE CONNECT ----- */
-    const sb = supabase.createClient(
-      "https://ytxhlihzxgftffaikumr.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA"
-    );
+  const sb = supabase.createClient(
+    "https://ytxhlihzxgftffaikumr.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  );
 
-    /* ----- ACTUAL RESET FUNCTION ----- */
-    async function resetPassword() {
-      const newPass = document.getElementById("newPass").value.trim();
-      const msg = document.getElementById("msg");
-
-      if (!newPass) {
-        msg.textContent = "Enter a new password!";
-        return;
-      }
-
-      msg.textContent = "Updating...";
-
-      const { error } = await sb.auth.updateUser({ password: newPass });
-
-      if (error) {
-        msg.textContent = error.message;
-      } else {
-        msg.style.color = "green";
-        msg.textContent = "Password updated successfully! Redirecting...";
-        setTimeout(() => {
-          window.location.href = "index.html";
-        }, 1500);
-      }
+  async function resetPassword() {
+    const newPass = document.getElementById("newPass").value.trim();
+    const msg = document.getElementById("msg");
+    if (!newPass) { msg.textContent = "Enter a new password!"; return; }
+    msg.textContent = "Updating...";
+    const { error } = await sb.auth.updateUser({ password: newPass });
+    if (error) msg.textContent = error.message;
+    else {
+      msg.style.color = "green";
+      msg.textContent = "Password updated! Redirecting...";
+      setTimeout(() => window.location.href = "index.html", 1500);
     }
+  }
 
-    // BUTTON CLICK WORKING 100%
-    document.getElementById("btnUpdate").onclick = resetPassword;
+  document.getElementById("btnUpdate").onclick = resetPassword;
   </script>
-
 </body>
-
 </html>
