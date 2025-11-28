@@ -1,5 +1,5 @@
 /* =======================================================
-   FINAL script.js — Auth + Reset + Products + Cart + Orders Button
+   FINAL script.js — Auth + Reset + Products + Cart + Orders
 ======================================================= */
 
 /* ========== Supabase Setup ========== */
@@ -15,16 +15,15 @@ let cart = JSON.parse(localStorage.getItem("cart") || "[]");
 let currentPage = 1;
 const itemsPerPage = 6;
 
-/* ========== Utility helpers ========== */
-function qs(id) { return document.getElementById(id); }
-function show(el) { if (el) { el.classList.remove("hidden"); el.style.display = ""; } }
-function hide(el) { if (el) { el.classList.add("hidden"); el.style.display = "none"; } }
-function toast(msg) { alert(msg); }
-function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
+/* ========== Utility functions ========== */
+const qs = (id) => document.getElementById(id);
+const show = (el) => { if (el) { el.classList.remove("hidden"); el.style.display = ""; } };
+const hide = (el) => { if (el) { el.classList.add("hidden"); el.style.display = "none"; } };
+const toast = (msg) => alert(msg);
+const saveCart = () => localStorage.setItem("cart", JSON.stringify(cart));
 
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", async () => {
-
   await checkAuth();
   await handleResetExchange();
 
@@ -34,19 +33,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   attachAuthModalHandlers();
 
-  // Cart modal listeners
+  /* Cart Modal */
   qs("btnCart")?.addEventListener("click", () => show(qs("cartModal")));
   qs("closeCart")?.addEventListener("click", () => hide(qs("cartModal")));
   qs("clearCart")?.addEventListener("click", () => {
-    cart = []; saveCart(); updateCartUI();
+    cart = [];
+    saveCart();
+    updateCartUI();
   });
 
-  // Search + Pagination
+  /* Search + Pagination */
   qs("search")?.addEventListener("input", () => { currentPage = 1; renderProducts(); });
-  qs("prevPage")?.addEventListener("click", () => { if (currentPage > 1) { currentPage--; renderProducts(); } });
+  qs("prevPage")?.addEventListener("click", () => {
+    if (currentPage > 1) { currentPage--; renderProducts(); }
+  });
   qs("nextPage")?.addEventListener("click", () => { currentPage++; renderProducts(); });
 
-  // Checkout -> Create Order
+  /* Checkout Order */
   qs("checkout")?.addEventListener("click", async () => {
     const user = (await sb.auth.getUser()).data?.user;
     if (!user) return toast("Please login first");
@@ -64,12 +67,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (error) return toast("Order error: " + error.message);
 
     toast("Order placed!");
-    cart = []; saveCart(); updateCartUI();
+    cart = [];
+    saveCart();
+    updateCartUI();
     hide(qs("cartModal"));
   });
 });
 
-/* ================= AUTH ================= */
+/* ================= AUTH CHECK ================= */
 async function checkAuth() {
   const { data } = await sb.auth.getUser();
   const user = data?.user;
@@ -77,53 +82,56 @@ async function checkAuth() {
   const userArea = qs("userArea");
   const btnLogin = qs("btnLogin");
   const btnLogout = qs("btnLogout");
-  const myOrdersBtn = qs("btnMyOrders");   // <----- ★ NEW BUTTON
+  const myOrdersBtn = qs("btnMyOrders");
   const userEmailSpan = qs("userEmail");
 
   if (user) {
-    if (userArea) userArea.style.display = "flex";
-    if (btnLogin) btnLogin.style.display = "none";
-    if (btnLogout) btnLogout.style.display = "inline-block";
-    if (myOrdersBtn) myOrdersBtn.style.display = "inline-block";   // ★ SHOW BUTTON
-    if (userEmailSpan) userEmailSpan.textContent = user.email;
+    userArea.style.display = "flex";
+    btnLogin.style.display = "none";
+    btnLogout.style.display = "inline-block";
+    myOrdersBtn.style.display = "inline-block";
+    userEmailSpan.textContent = user.email;
 
-    btnLogout?.addEventListener("click", async () => {
+    btnLogout.onclick = async () => {
       await sb.auth.signOut();
       location.reload();
-    }, { once: true });
+    };
 
   } else {
-    if (userArea) userArea.style.display = "none";
-    if (btnLogin) btnLogin.style.display = "inline-block";
-    if (btnLogout) btnLogout.style.display = "none";
-    if (myOrdersBtn) myOrdersBtn.style.display = "none";   // ★ HIDE BUTTON
+    userArea.style.display = "none";
+    btnLogin.style.display = "inline-block";
+    btnLogout.style.display = "none";
+    myOrdersBtn.style.display = "none";
   }
 }
 
-/* ================= AUTH MODAL HANDLERS ================= */
+/* ================= AUTH MODAL ================= */
 function attachAuthModalHandlers() {
-
   qs("btnLogin")?.addEventListener("click", () => openAuthModal("login"));
   qs("btnSignup")?.addEventListener("click", () => openAuthModal("signup"));
 
-  const loginModal = qs("loginModal");
-  const switchToSignup = qs("switchToSignup");
-  const switchToLogin = qs("switchToLogin");
-  const cancelAuth = qs("cancelAuth");
+  const modal = qs("loginModal");
   const submitAuth = qs("submitAuth");
   const authMsg = qs("authMsg");
-  const btnReset = qs("btnReset");
 
-  switchToSignup?.addEventListener("click", e => { e.preventDefault(); openAuthModal("signup"); });
-  switchToLogin?.addEventListener("click", e => { e.preventDefault(); openAuthModal("login"); });
-  cancelAuth?.addEventListener("click", () => hide(loginModal));
+  qs("switchToSignup")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    openAuthModal("signup");
+  });
 
-  submitAuth?.addEventListener("click", async () => {
+  qs("switchToLogin")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    openAuthModal("login");
+  });
 
+  qs("cancelAuth")?.addEventListener("click", () => hide(modal));
+
+  /* LOGIN + SIGNUP */
+  submitAuth.addEventListener("click", async () => {
     submitAuth.disabled = true;
     authMsg.textContent = "";
 
-    const mode = loginModal.dataset.mode;
+    const mode = modal.dataset.mode;
     const email = qs("authEmail").value.trim();
     const password = qs("authPass").value.trim();
 
@@ -132,40 +140,36 @@ function attachAuthModalHandlers() {
 
     try {
       if (mode === "login") {
-
         const { error } = await sb.auth.signInWithPassword({ email, password });
-        if (error) { authMsg.textContent = error.message; submitAuth.disabled = false; return; }
+        if (error) { authMsg.textContent = error.message; return; }
 
-        hide(loginModal);
+        hide(modal);
         location.reload();
 
       } else {
-
         const { error } = await sb.auth.signUp({ email, password });
-        if (error) { authMsg.textContent = error.message; submitAuth.disabled = false; return; }
+        if (error) { authMsg.textContent = error.message; return; }
 
         authMsg.style.color = "green";
-        authMsg.textContent = "Signup complete!";
-        hide(loginModal);
-        location.reload();
+        authMsg.textContent = "Signup successful! Please login now.";
       }
-
     } finally {
       submitAuth.disabled = false;
     }
   });
 
-  btnReset?.addEventListener("click", async () => {
+  /* RESET PASSWORD */
+  qs("btnReset")?.addEventListener("click", async () => {
     const email = qs("authEmail").value.trim();
     if (!email) return authMsg.textContent = "Enter email first";
 
     const redirectTo = window.location.origin + "/reset_password.html";
-
     const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+
     if (error) authMsg.textContent = error.message;
     else {
       authMsg.style.color = "green";
-      authMsg.textContent = "Reset email sent!";
+      authMsg.textContent = "Reset link sent!";
     }
   });
 }
@@ -184,11 +188,10 @@ function openAuthModal(mode) {
   show(modal);
 }
 
-/* ================= RESET PASSWORD FLOW ================= */
+/* ================= RESET PASSWORD CALLBACK ================= */
 async function handleResetExchange() {
   const code = new URLSearchParams(window.location.search).get("code");
   if (!code) return;
-
   await sb.auth.exchangeCodeForSession(code);
 }
 
@@ -215,18 +218,16 @@ function renderProducts() {
   const start = (currentPage - 1) * itemsPerPage;
   const pageItems = filtered.slice(start, start + itemsPerPage);
 
-  grid.innerHTML = pageItems.map(p => {
-    const img = p.image_url || p.image || "";
-    return `
+  grid.innerHTML = pageItems
+    .map(p => `
       <div class="bg-white p-4 rounded shadow flex flex-col">
-        <img src="${img}" class="h-48 w-full object-contain mb-2" />
+        <img src="${p.image_url || p.image}" class="h-48 w-full object-contain mb-2" />
         <h3 class="font-semibold">${p.title}</h3>
         <p class="text-gray-500">${p.description?.slice(0, 70)}...</p>
         <p class="text-xl font-bold mt-2">$${p.price}</p>
         <a href="product.html?id=${p.id}" class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded text-center">View</a>
       </div>
-    `;
-  }).join("");
+    `).join("");
 
   qs("pageInfo").textContent = `Page ${currentPage} of ${totalPages}`;
 }
@@ -245,8 +246,7 @@ async function setupProductPage() {
   qs("productDesc").textContent = product.description;
   qs("productPrice").textContent = "$" + product.price;
 
-  const mainImg = qs("mainProductImage");
-  mainImg.src = product.image_url || product.image;
+  qs("mainProductImage").src = product.image_url || product.image;
 
   qs("addToCart").addEventListener("click", () => {
     const qty = Number(qs("quantity").value) || 1;
@@ -296,22 +296,24 @@ function updateCartUI() {
   cartItems.querySelectorAll(".remove").forEach(b => {
     b.onclick = () => {
       cart.splice(b.dataset.i, 1);
-      saveCart(); updateCartUI();
+      saveCart();
+      updateCartUI();
     };
   });
 
   cartItems.querySelectorAll(".increase").forEach(b => {
     b.onclick = () => {
       cart[b.dataset.i].qty++;
-      saveCart(); updateCartUI();
+      saveCart();
+      updateCartUI();
     };
   });
 
   cartItems.querySelectorAll(".decrease").forEach(b => {
     b.onclick = () => {
       cart[b.dataset.i].qty = Math.max(1, cart[b.dataset.i].qty - 1);
-      saveCart(); updateCartUI();
+      saveCart();
+      updateCartUI();
     };
   });
 }
-
