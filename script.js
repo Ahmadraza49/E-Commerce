@@ -1,13 +1,136 @@
+/* =======================================================
+   script.js — Fixed version for index + product pages
+======================================================= */
+
+/* ========== Supabase Setup ========== */
+const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ========== Global Variables ========== */
+let products = [];
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let currentPage = 1;
+const itemsPerPage = 6;
+
+/* ========================================================
+   ========== INIT ========== */
+document.addEventListener("DOMContentLoaded", async () => {
+  await checkAuth();
+  if (document.getElementById("productsGrid")) loadProducts();
+  if (document.getElementById("btnCart")) updateCartUI();
+  setupProductPage();
+});
+
+/* ========================================================
+   ========== AUTH ========== */
+async function checkAuth() {
+  const { data } = await sb.auth.getUser();
+  const userArea = document.getElementById("userArea");
+  const userEmail = document.getElementById("userEmail");
+  const btnLogin = document.getElementById("btnLogin");
+
+  if (data.user) {
+    if(userArea) userArea.style.display="flex";
+    if(userEmail) userEmail.textContent=data.user.email;
+    if(btnLogin) btnLogin.style.display="none";
+  } else {
+    if(userArea) userArea.style.display="none";
+    if(btnLogin) btnLogin.style.display="inline-block";
+  }
+}
+
+/* ========================================================
+   ========== PRODUCTS ========== */
+async function loadProducts() {
+  const { data, error } = await sb.from("products").select("*");
+  if(error){ console.error(error); return; }
+  products = data; renderProducts();
+}
+
+function renderProducts(){
+  const searchInput = document.getElementById("search");
+  const productsGrid = document.getElementById("productsGrid");
+  const search = searchInput?.value.toLowerCase()||"";
+  const filtered = products.filter(p=>p.title.toLowerCase().includes(search));
+  const totalPages = Math.ceil(filtered.length/itemsPerPage);
+  if(currentPage>totalPages) currentPage=totalPages||1;
+  const start=(currentPage-1)*itemsPerPage;
+  const pageItems=filtered.slice(start,start+itemsPerPage);
+
+  if(productsGrid){
+    productsGrid.innerHTML=pageItems.map(p=>`
+      <div class="bg-white p-4 rounded shadow flex flex-col">
+        <img src="${p.image_url}" class="h-48 w-full object-contain mb-2" />
+        <h3 class="font-semibold">${p.title}</h3>
+        <p class="text-gray-500">${p.description.substring(0,50)}...</p>
+        <p class="text-xl font-bold mt-2">₹${p.price}</p>
+        <a href="product.html?id=${p.id}" class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded text-center">View</a>
+      </div>
+    `).join("");
+  }
+
+  const pageInfo = document.getElementById("pageInfo");
+  if(pageInfo) pageInfo.textContent=`Page ${currentPage} of ${totalPages||1}`;
+}
+
+document.getElementById("search")?.addEventListener("input", ()=>{ currentPage=1; renderProducts(); });
+document.getElementById("prevPage")?.addEventListener("click", ()=>{ if(currentPage>1){ currentPage--; renderProducts(); }} );
+document.getElementById("nextPage")?.addEventListener("click", ()=>{ currentPage++; renderProducts(); } );
+
+/* ========================================================
+   ========== CART ========== */
+function saveCart(){ localStorage.setItem("cart",JSON.stringify(cart)); }
+
+function updateCartUI(){
+  const cartItems = document.getElementById("cartItems");
+  const cartCount = document.getElementById("cartCount");
+  const cartTotal = document.getElementById("cartTotal");
+  if(!cartItems || !cartCount || !cartTotal) return;
+
+  cartItems.innerHTML="";
+  let total=0;
+  cart.forEach((item,index)=>{
+    total+=item.price*item.qty;
+    const div=document.createElement("div");
+    div.className="flex justify-between items-center border-b pb-2";
+    div.innerHTML=`<div>
+      <p class="font-semibold">${item.title}</p>
+      <p class="text-sm text-gray-500">₹${item.price} × ${item.qty}</p>
+      ${item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mt-1"/>` : ""}
+      </div>
+      <button data-index="${index}" class="px-2 py-1 border rounded">Remove</button>`;
+    cartItems.appendChild(div);
+  });
+
+  cartCount.textContent = cart.length;
+  cartTotal.textContent = `₹${total}`;
+
+  document.querySelectorAll("#cartItems button").forEach(btn=>{
+    btn.addEventListener("click",(e)=>{ 
+      const idx=e.target.dataset.index; 
+      cart.splice(idx,1); 
+      saveCart(); 
+      updateCartUI(); 
+    });
+  });
+}
+
+document.getElementById("btnCart")?.addEventListener("click", ()=>document.getElementById("cartModal")?.classList.remove("hidden"));
+document.getElementById("closeCart")?.addEventListener("click", ()=>document.getElementById("cartModal")?.classList.add("hidden"));
+document.getElementById("clearCart")?.addEventListener("click", ()=>{ cart=[]; saveCart(); updateCartUI(); });
+
 /* ========================================================
    ========== PRODUCT PAGE ========== */
 async function setupProductPage(){
   const addToCartBtn = document.getElementById("addToCart");
-  if(!addToCartBtn) return; // not a product page
+  if(!addToCartBtn) return;
 
   const productTitleEl = document.getElementById("productTitle");
   const productDescEl = document.getElementById("productDesc");
   const productPriceEl = document.getElementById("productPrice");
   const productImagesEl = document.getElementById("productImages");
+  const mainProductImageEl = document.getElementById("mainProductImage");
 
   const productIdStr = new URLSearchParams(window.location.search).get("id");
   const productId = productIdStr ? Number(productIdStr) : 0;
@@ -24,38 +147,33 @@ async function setupProductPage(){
   productDescEl.textContent = product.description;
   productPriceEl.textContent = `₹${product.price}`;
 
-  // Handle design_images column
   let images = [];
-  if (Array.isArray(product.design_images)) {
-    images = product.design_images;
-  } else if (typeof product.design_images === "string") {
-    try {
-      images = JSON.parse(product.design_images);
-    } catch(e){
-      images = product.design_images.split(",");
-    }
+  if (Array.isArray(product.design_images)) images = product.design_images;
+  else if (typeof product.design_images === "string") {
+    try { images = JSON.parse(product.design_images); } 
+    catch(e){ images = product.design_images.split(","); }
   }
   images = images || [];
 
-  // Render thumbnails
+  let selectedImage = images[0] || "";
+  mainProductImageEl.src = selectedImage;
+
   productImagesEl.innerHTML = images.map(url => `
-    <img src="${url}" class="w-48 h-48 object-contain border rounded cursor-pointer hover:scale-105 transition" />
+    <img src="${url}" class="w-24 h-24 object-contain border rounded cursor-pointer hover:scale-105 transition" />
   `).join("");
 
-  // Set first image as selected
-  let selectedImage = images[0] || "";
+  // Highlight first thumbnail
+  if(productImagesEl.querySelector("img")) productImagesEl.querySelector("img").classList.add("border-indigo-600");
 
-  // Add click events to thumbnails
   productImagesEl.querySelectorAll("img").forEach(imgEl => {
     imgEl.addEventListener("click", () => {
       selectedImage = imgEl.src;
-      // Optional: highlight selected thumbnail
+      mainProductImageEl.src = selectedImage;
       productImagesEl.querySelectorAll("img").forEach(i => i.classList.remove("border-indigo-600"));
       imgEl.classList.add("border-indigo-600");
     });
   });
 
-  // Add to cart
   addToCartBtn.addEventListener("click", () => {
     const qty = parseInt(document.getElementById("quantity")?.value) || 1;
     const existing = cart.find(c => c.id === product.id && c.image === selectedImage);
@@ -66,3 +184,25 @@ async function setupProductPage(){
     alert("Added to cart!");
   });
 }
+
+/* ========================================================
+   ========== CHECKOUT ========== */
+document.getElementById("checkout")?.addEventListener("click", async ()=>{
+  const user = (await sb.auth.getUser()).data.user;
+  if(!user){ alert("Login first"); return; }
+  if(!cart.length){ alert("Cart empty"); return; }
+
+  const order = {
+    user_id: user.id,
+    total: cart.reduce((a,b)=>a+b.price*b.qty,0),
+    items: cart,
+    status: "Pending",
+    created_at: new Date().toISOString()
+  };
+
+  const { error } = await sb.from("orders").insert([order]);
+  if(error){ alert(error.message); return; }
+  alert("Order placed!");
+  cart=[]; saveCart(); updateCartUI();
+  document.getElementById("cartModal")?.classList.add("hidden");
+});
