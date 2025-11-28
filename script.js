@@ -275,7 +275,7 @@ function renderProducts(){
         <img src="${img}" class="h-48 w-full object-contain mb-2" onerror="this.style.display='none'"/>
         <h3 class="font-semibold">${escapeHtml(p.title || "")}</h3>
         <p class="text-gray-500">${escapeHtml((p.description||"").substring(0,70))}...</p>
-        <p class="text-xl font-bold mt-2">₹${p.price}</p>
+        <p class="text-xl font-bold mt-2">$${p.price}</p>
         <a href="product.html?id=${p.id}" class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded text-center">View</a>
       </div>
     `;
@@ -309,7 +309,7 @@ async function setupProductPage(){
 
     if(productTitleEl) productTitleEl.textContent = product.title || "";
     if(productDescEl) productDescEl.textContent = product.description || "";
-    if(productPriceEl) productPriceEl.textContent = "₹" + (product.price || "0");
+    if(productPriceEl) productPriceEl.textContent = "$" + (product.price || "0");
 
     // Normalize images array
     let images = [];
@@ -376,7 +376,7 @@ function updateCartUI(){
     div.className = "flex justify-between items-center border-b pb-2";
     div.innerHTML = `<div>
         <p class="font-semibold">${escapeHtml(item.title || "")}</p>
-        <p class="text-sm text-gray-500">₹${item.price} × ${item.qty}</p>
+        <p class="text-sm text-gray-500">$${item.price} × ${item.qty}</p>
         ${item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mt-1" onerror="this.style.display='none'">` : ""}
       </div>
       <div class="flex gap-2 items-center">
@@ -388,7 +388,7 @@ function updateCartUI(){
     cartItems.appendChild(div);
   });
 
-  cartTotal.textContent = "₹" + total;
+  cartTotal.textContent = "$" + total;
 
   // Attach buttons
   cartItems.querySelectorAll("button.remove").forEach(btn=>{
@@ -425,3 +425,4 @@ function escapeHtml(str){
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+
