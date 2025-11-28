@@ -1,7 +1,9 @@
 /* =======================================================
-   FINAL script.js — Email+Password auth, reset, products, orders
-   SIGNUP BUTTON FIXED ✔
-======================================================= */
+   script.js — Cart (localStorage) + Auth + Products + Orders
+   - Persist cart to localStorage
+   - Checkout inserts into Supabase orders table
+   - Auth UI updates user area
+   ======================================================= */
 
 /* ========== Supabase setup ========== */
 const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
@@ -12,8 +14,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ========== Utilities ========== */
 const $ = (id) => document.getElementById(id);
-const rup = (n) => "$" + Number(n || 0).toLocaleString();
+const rup = (n) => "₹" + Number(n || 0).toLocaleString();
 
+/* Image fallback helper */
 function setImageWithFallback(imgEl, url, title) {
   const fallback = `https://placehold.co/600x400?text=${encodeURIComponent(title || "Product")}&font=roboto`;
   if (!imgEl) return;
@@ -28,28 +31,59 @@ function setImageWithFallback(imgEl, url, title) {
   };
 }
 
-/* ========== In-memory cart ========== */
-let CART = [];
-function loadCart() { return CART; }
-function saveCartToMemory(cart) { CART = cart; updateCartUI(); }
-function addToCart(item) {
-  const cart = loadCart();
-  const found = cart.find(i => i.id === item.id);
-  if (found) found.qty += item.qty;
-  else cart.push({...item});
-  saveCartToMemory(cart);
-}
-function removeFromCart(id) { saveCartToMemory(loadCart().filter(i => i.id !== id)); }
-function clearCart() { CART = []; updateCartUI(); }
-function cartTotal() { return loadCart().reduce((s,i)=> s + Number(i.price) * i.qty, 0); }
+/* ========== Cart (localStorage-backed) ========== */
+const CART_KEY = "myshop_cart_v1";
 
-/* ========== AUTH ========== */
+function loadCart() {
+  try {
+    const raw = localStorage.getItem(CART_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error("Failed to parse cart:", e);
+    return [];
+  }
+}
+
+function saveCart(cart) {
+  try {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  } catch (e) {
+    console.warn("Failed to save cart:", e);
+  }
+  updateCartUI();
+}
+
+function addToCart(item) {
+  if (!item || !item.id) return;
+  const cart = loadCart();
+  const found = cart.find(i => i.id === String(item.id));
+  if (found) found.qty = Number(found.qty || 0) + Number(item.qty || 1);
+  else cart.push({ id: String(item.id), title: item.title, price: Number(item.price || 0), qty: Number(item.qty || 1) });
+  saveCart(cart);
+}
+
+function removeFromCart(id) {
+  const cart = loadCart().filter(i => i.id !== String(id));
+  saveCart(cart);
+}
+
+function clearCart() {
+  saveCart([]);
+}
+
+function cartTotalValue() {
+  return loadCart().reduce((s, i) => s + Number(i.price) * Number(i.qty), 0);
+}
+
+/* ========== Auth UI ========== */
 async function initAuthUI() {
   try {
     const res = await sb.auth.getSession();
-    const session = res?.data?.session;
-    setUser(session?.user ?? null);
-  } catch (e) { console.warn("initAuthUI error:", e); }
+    setUser(res?.data?.session?.user ?? null);
+  } catch (e) {
+    console.warn("initAuthUI error:", e);
+  }
 
   sb.auth.onAuthStateChange((_event, session) => {
     setUser(session?.user ?? null);
@@ -60,20 +94,25 @@ function setUser(user) {
   const userArea = $("userArea");
   const btnLogin = $("btnLogin");
   const btnLogout = $("btnLogout");
-
-  if (!btnLogin) return;
+  const userEmailEl = $("userEmail");
 
   if (user) {
-    userArea.classList.remove("hidden");
-    btnLogin.classList.add("hidden");
+    if (userArea) userArea.classList.remove("hidden");
+    if (btnLogin) btnLogin.classList.add("hidden");
+    if (userEmailEl) userEmailEl.textContent = user.email || "";
   } else {
-    userArea.classList.add("hidden");
-    btnLogin.classList.remove("hidden");
+    if (userArea) userArea.classList.add("hidden");
+    if (btnLogin) btnLogin.classList.remove("hidden");
+    if (userEmailEl) userEmailEl.textContent = "";
   }
 
   if (btnLogout) {
     btnLogout.onclick = async () => {
-      await sb.auth.signOut();
+      try {
+        await sb.auth.signOut();
+      } catch (e) {
+        console.warn("signOut error:", e);
+      }
       clearCart();
       alert("Logged out");
       window.location.href = "index.html";
@@ -81,15 +120,13 @@ function setUser(user) {
   }
 }
 
-/* Signup then auto login */
+/* ========== Auth helpers (signup/login/reset) ========== */
 async function signupAndLogin(email, password) {
   if (!email || !password) return { error: { message: "Provide email & password" } };
-
   const { error: signErr } = await sb.auth.signUp({ email, password });
   if (signErr && signErr.status !== 400) {
     return { error: signErr };
   }
-
   return await sb.auth.signInWithPassword({ email, password });
 }
 
@@ -104,9 +141,7 @@ async function sendResetEmail(email) {
   return await sb.auth.resetPasswordForEmail(email, { redirectTo });
 }
 
-/* ==========================================================
-   AUTH MODAL FIXED ✔ (Signup button showing correctly now)
-========================================================== */
+/* ========== Auth modal logic (shared) ========== */
 function showAuthModal(mode = "login") {
   const m = $("loginModal");
   if (!m) return;
@@ -127,7 +162,6 @@ function showAuthModal(mode = "login") {
   $("authEmail").value = "";
   $("authPass").value = "";
 
-  /* 🔥 THIS IS THE FIX 🔥 */
   if (mode === "signup") {
     btn.textContent = "Create Account";
     swSignup.style.display = "none";
@@ -138,11 +172,9 @@ function showAuthModal(mode = "login") {
     swLogin.style.display = "none";
   }
 
-  /* Show modal */
   m.classList.remove("hidden");
   m.classList.add("flex");
 
-  /* Submit handler */
   btn.onclick = async () => {
     const email = $("authEmail").value.trim();
     const pass = $("authPass").value.trim();
@@ -150,22 +182,26 @@ function showAuthModal(mode = "login") {
     msg.style.color = "red";
     msg.textContent = "Processing...";
 
-    if (mode === "signup") {
-      const { error } = await signupAndLogin(email, pass);
-      if (error) return msg.textContent = error.message;
-
-      msg.style.color = "green";
-      msg.textContent = "Signup successful!";
-      m.classList.add("hidden");
-      return window.location.href = "index.html";
-    } else {
-      const { error } = await loginWithPassword(email, pass);
-      if (error) return msg.textContent = error.message;
-
-      msg.style.color = "green";
-      msg.textContent = "Login successful!";
-      m.classList.add("hidden");
-      return window.location.href = "index.html";
+    try {
+      if (mode === "signup") {
+        const { error } = await signupAndLogin(email, pass);
+        if (error) return msg.textContent = error.message;
+        msg.style.color = "green";
+        msg.textContent = "Signup successful!";
+        m.classList.add("hidden");
+        return window.location.href = "index.html";
+      } else {
+        const { error } = await loginWithPassword(email, pass);
+        if (error) return msg.textContent = error.message;
+        msg.style.color = "green";
+        msg.textContent = "Login successful!";
+        m.classList.add("hidden");
+        return window.location.href = "index.html";
+      }
+    } catch (e) {
+      console.error("auth error:", e);
+      msg.style.color = "red";
+      msg.textContent = "Something went wrong";
     }
   };
 
@@ -183,10 +219,10 @@ function showAuthModal(mode = "login") {
   swLogin.onclick = (e) => { e.preventDefault(); showAuthModal("login"); };
 }
 
-/* ========== Cart UI ========== */
+/* ========== Cart UI rendering ========== */
 function updateCartUI() {
   const cart = loadCart();
-  const count = cart.reduce((s,i)=>s + i.qty, 0);
+  const count = cart.reduce((s, i) => s + Number(i.qty || 0), 0);
   if ($("cartCount")) $("cartCount").textContent = count;
 
   const wrap = $("cartItems");
@@ -201,48 +237,79 @@ function updateCartUI() {
       div.className = "flex items-center justify-between";
       div.innerHTML = `
         <div>
-          <div class="font-semibold">${i.title}</div>
+          <div class="font-semibold">${escapeHtml(i.title)}</div>
           <div class="text-sm text-gray-500">Qty ${i.qty} × ${rup(i.price)}</div>
         </div>
         <div class="text-right">
-          <div class="font-bold">${rup(i.qty * i.price)}</div>
+          <div class="font-bold">${rup(Number(i.qty) * Number(i.price))}</div>
           <button data-id="${i.id}" class="removeBtn text-sm mt-1">Remove</button>
         </div>`;
       wrap.appendChild(div);
     });
 
     wrap.querySelectorAll(".removeBtn")
-    .forEach(btn => btn.onclick = () => removeFromCart(btn.dataset.id));
+      .forEach(btn => btn.onclick = () => removeFromCart(btn.dataset.id));
   }
 
-  if ($("cartTotal")) $("cartTotal").textContent = rup(cartTotal());
+  if ($("cartTotal")) $("cartTotal").textContent = rup(cartTotalValue());
 }
 
-/* ========== Checkout ========== */
-async function checkout() {
-  const userResp = await sb.auth.getUser();
-  const user = userResp?.data?.user;
-  if (!user) return alert("Please login first"), showAuthModal("login");
+/* Simple HTML escape to avoid accidental injection when rendering titles/descriptions */
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/* ========== Checkout (insert order into Supabase) ========== */
+async function checkoutHandler() {
+  const session = await sb.auth.getUser();
+  const user = session?.data?.user;
+  if (!user) {
+    alert("Please login first");
+    showAuthModal("login");
+    return;
+  }
 
   const cart = loadCart();
-  if (!cart.length) return alert("Cart empty");
+  if (!cart.length) {
+    alert("Cart empty");
+    return;
+  }
+
+  const total = cartTotalValue();
 
   const order = {
     user_id: user.id,
     user_email: user.email,
     items: cart,
-    total: cartTotal(),
+    total: total,
+    status: "Pending",
     created_at: new Date().toISOString()
   };
 
-  const { data, error } = await sb.from("orders").insert(order).select("id");
-  if (error) return alert(error.message);
-
-  clearCart();
-  alert("Order placed! ID: " + (data?.[0]?.id || "?"));
+  try {
+    const { data, error } = await sb.from("orders").insert(order).select("id");
+    if (error) {
+      console.error("order insert error:", error);
+      alert("Order failed: " + (error.message || "unknown"));
+      return;
+    }
+    clearCart();
+    alert("Order placed! ID: " + (data?.[0]?.id || "?"));
+    // Optionally redirect to orders page:
+    // window.location.href = "orders.html";
+  } catch (e) {
+    console.error("checkout exception:", e);
+    alert("Order failed");
+  }
 }
 
-/* ========== Products Page ========== */
+/* ========== Products listing (index) ========== */
 let PAGE = 1;
 const PER_PAGE = 6;
 let isLoadingProducts = false;
@@ -267,12 +334,14 @@ async function setupIndexPage() {
       .range(start, end);
 
     if (error) {
+      console.error("products error:", error);
       grid.innerHTML = `<p class="text-red-500">Error loading products.</p>`;
-      return (isLoadingProducts = false);
+      isLoadingProducts = false;
+      return;
     }
 
-    let items = data;
-    if (q) items = items.filter(p => p.title.toLowerCase().includes(q));
+    let items = data || [];
+    if (q) items = items.filter(p => (p.title || "").toLowerCase().includes(q));
 
     grid.innerHTML = "";
     if (!items.length) {
@@ -286,9 +355,9 @@ async function setupIndexPage() {
           <a href="product.html?id=${p.id}" class="block h-48 mb-3">
             <img class="w-full h-full object-contain product-img" />
           </a>
-          <h3 class="font-semibold text-lg">${p.title}</h3>
-          <p class="text-sm text-gray-500">${p.description.substring(0,100)}</p>
-          <div class="mt-3 flex justify-between">
+          <h3 class="font-semibold text-lg">${escapeHtml(p.title)}</h3>
+          <p class="text-sm text-gray-500">${escapeHtml((p.description || "").substring(0,100))}</p>
+          <div class="mt-3 flex justify-between items-center">
             <span class="font-bold">${rup(p.price)}</span>
             <button class="addNow px-3 py-1 border rounded" data-id="${p.id}">Add</button>
           </div>
@@ -301,60 +370,93 @@ async function setupIndexPage() {
       document.querySelectorAll(".addNow")
         .forEach(btn => {
           btn.onclick = async () => {
-            const { data: p } = await sb.from("products").select("*").eq("id", btn.dataset.id).single();
-            addToCart({ id: String(p.id), title: p.title, price: p.price, qty: 1 });
-            alert("Added to cart");
+            try {
+              const { data: p, error } = await sb.from("products").select("*").eq("id", btn.dataset.id).single();
+              if (error) {
+                console.error("product fetch error:", error);
+                alert("Failed to add product");
+                return;
+              }
+              addToCart({ id: String(p.id), title: p.title, price: p.price, qty: 1 });
+              alert("Added to cart");
+            } catch (e) {
+              console.error("addNow error:", e);
+              alert("Failed to add product");
+            }
           };
         });
     }
 
-    $("pageInfo").textContent = `Page ${PAGE}`;
-    prev.disabled = PAGE === 1;
+    if ($("pageInfo")) $("pageInfo").textContent = `Page ${PAGE}`;
+    if (prev) prev.disabled = PAGE === 1;
     isLoadingProducts = false;
   }
 
   prev.onclick = () => { if (PAGE > 1) PAGE--; loadProducts(); };
   next.onclick = () => { PAGE++; loadProducts(); };
-  search.oninput = () => { PAGE = 1; loadProducts(); };
+  if (search) search.oninput = () => { PAGE = 1; loadProducts(); };
 
   loadProducts();
 }
 
-/* ========== Product Page ========== */
+/* ========== Product page setup ========== */
 async function setupProductPage() {
   const id = new URLSearchParams(location.search).get("id");
   if (!id) return;
 
   const { data: p, error } = await sb.from("products").select("*").eq("id", id).single();
-  if (error) return alert("Product not found");
+  if (error || !p) {
+    console.error("product page error:", error);
+    return alert("Product not found");
+  }
 
   setImageWithFallback($("productImage"), p.image_url, p.title);
-  $("productTitle").textContent = p.title;
-  $("productDesc").textContent = p.description;
-  $("productPrice").textContent = rup(p.price);
+  if ($("productTitle")) $("productTitle").textContent = p.title;
+  if ($("productDesc")) $("productDesc").textContent = p.description;
+  if ($("productPrice")) $("productPrice").textContent = rup(p.price);
 
-  $("addToCart").onclick = () => {
-    const qty = Number($("quantity").value) || 1;
-    addToCart({ id: String(p.id), title: p.title, price: p.price, qty });
-    alert("Added to cart");
-  };
+  const addBtn = $("addToCart");
+  if (addBtn) {
+    addBtn.onclick = () => {
+      const qty = Number($("quantity")?.value || 1) || 1;
+      addToCart({ id: String(p.id), title: p.title, price: p.price, qty });
+      alert("Added to cart");
+    };
+  }
 }
 
-/* ========== INIT ========== */
+/* ========== INIT — wire up buttons & pages ========== */
 document.addEventListener("DOMContentLoaded", async () => {
   await initAuthUI();
+
+  // initial render of cart UI
   updateCartUI();
 
-  $("btnCart")?.addEventListener("click", () => $("cartModal").classList.remove("hidden"));
-  $("closeCart")?.addEventListener("click", () => $("cartModal").classList.add("hidden"));
-  $("clearCart")?.addEventListener("click", () => confirm("Clear cart?") && clearCart());
-  $("checkout")?.addEventListener("click", checkout);
+  // Cart open/close
+  $("btnCart")?.addEventListener("click", () => {
+    const modal = $("cartModal");
+    if (modal) modal.classList.remove("hidden");
+  });
 
+  $("closeCart")?.addEventListener("click", () => {
+    const modal = $("cartModal");
+    if (modal) modal.classList.add("hidden");
+  });
+
+  // clear & checkout handlers
+  $("clearCart")?.addEventListener("click", () => {
+    if (confirm("Clear cart?")) clearCart();
+  });
+
+  $("checkout")?.addEventListener("click", checkoutHandler);
+
+  // Login modal
   $("btnLogin")?.addEventListener("click", () => showAuthModal("login"));
-  $("switchToSignup")?.addEventListener("click", (e)=> { e.preventDefault(); showAuthModal("signup"); });
-  $("switchToLogin")?.addEventListener("click", (e)=> { e.preventDefault(); showAuthModal("login"); });
-  $("cancelAuth")?.addEventListener("click", () => $("loginModal").classList.add("hidden"));
+  $("switchToSignup")?.addEventListener("click", (e) => { e.preventDefault(); showAuthModal("signup"); });
+  $("switchToLogin")?.addEventListener("click", (e) => { e.preventDefault(); showAuthModal("login"); });
+  $("cancelAuth")?.addEventListener("click", () => $("loginModal")?.classList.add("hidden"));
 
-  if (location.pathname.includes("product.html")) setupProductPage();
-  else setupIndexPage();
+  // Page specific
+  if (location.pathname.includes("product.html")) await setupProductPage();
+  else await setupIndexPage();
 });
