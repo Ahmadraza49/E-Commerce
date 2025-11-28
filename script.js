@@ -27,16 +27,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function checkAuth() {
   const { data } = await sb.auth.getUser();
   const userArea = document.getElementById("userArea");
-  const userEmail = document.getElementById("userEmail");
   const btnLogin = document.getElementById("btnLogin");
 
   if (data.user) {
-    if(userArea) userArea.style.display="flex";
-    if(userEmail) userEmail.textContent=data.user.email;
-    if(btnLogin) btnLogin.style.display="none";
+    if(userArea) userArea.style.display = "none"; // hide email display
+    if(btnLogin) btnLogin.style.display = "none";
   } else {
-    if(userArea) userArea.style.display="none";
-    if(btnLogin) btnLogin.style.display="inline-block";
+    if(userArea) userArea.style.display = "none";
+    if(btnLogin) btnLogin.style.display = "inline-block";
   }
 }
 
@@ -130,7 +128,9 @@ async function setupProductPage(){
   const productDescEl = document.getElementById("productDesc");
   const productPriceEl = document.getElementById("productPrice");
   const productImagesEl = document.getElementById("productImages");
+
   const mainProductImageEl = document.getElementById("mainProductImage");
+  if(mainProductImageEl) mainProductImageEl.src = "";
 
   const productIdStr = new URLSearchParams(window.location.search).get("id");
   const productId = productIdStr ? Number(productIdStr) : 0;
@@ -147,29 +147,31 @@ async function setupProductPage(){
   productDescEl.textContent = product.description;
   productPriceEl.textContent = `₹${product.price}`;
 
+  // Parse images safely
   let images = [];
   if (Array.isArray(product.design_images)) images = product.design_images;
   else if (typeof product.design_images === "string") {
     try { images = JSON.parse(product.design_images); } 
     catch(e){ images = product.design_images.split(","); }
   }
-  images = images || [];
 
   let selectedImage = images[0] || "";
-  mainProductImageEl.src = selectedImage;
+  if(mainProductImageEl) mainProductImageEl.src = selectedImage;
 
+  // Render thumbnails
   productImagesEl.innerHTML = images.map(url => `
-    <img src="${url}" class="w-24 h-24 object-contain border rounded cursor-pointer hover:scale-105 transition" />
+    <img src="${url}" class="w-24 h-24 object-contain border rounded cursor-pointer hover:scale-105 transition"/>
   `).join("");
 
   // Highlight first thumbnail
-  if(productImagesEl.querySelector("img")) productImagesEl.querySelector("img").classList.add("border-indigo-600");
+  const thumbnails = productImagesEl.querySelectorAll("img");
+  if(thumbnails.length) thumbnails[0].classList.add("border-indigo-600");
 
-  productImagesEl.querySelectorAll("img").forEach(imgEl => {
+  thumbnails.forEach(imgEl => {
     imgEl.addEventListener("click", () => {
       selectedImage = imgEl.src;
-      mainProductImageEl.src = selectedImage;
-      productImagesEl.querySelectorAll("img").forEach(i => i.classList.remove("border-indigo-600"));
+      if(mainProductImageEl) mainProductImageEl.src = selectedImage;
+      thumbnails.forEach(i => i.classList.remove("border-indigo-600"));
       imgEl.classList.add("border-indigo-600");
     });
   });
