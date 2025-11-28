@@ -4,7 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>MyShop — Products</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -20,43 +24,49 @@
         <!-- USER AREA -->
         <div id="userArea" class="hidden items-center gap-3">
           <span id="userEmail" class="text-sm"></span>
-
           <a href="orders.html" class="px-3 py-1 border rounded">My Orders</a>
-
           <button id="btnLogout" class="px-3 py-1 border rounded">Logout</button>
         </div>
 
+        <!-- LOGIN BUTTON -->
         <button id="btnLogin" class="px-3 py-1 bg-indigo-600 text-white rounded">
           Login / Signup
         </button>
 
         <!-- CART -->
         <button id="btnCart" class="relative px-3 py-1 border rounded">
-          Cart 
-          <span id="cartCount" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1">
+          Cart
+          <span id="cartCount"
+            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1">
             0
           </span>
         </button>
+
       </div>
     </div>
   </header>
 
   <!-- MAIN PRODUCTS -->
   <main class="container mx-auto px-4 py-8">
+
+    <!-- SEARCH -->
     <section class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-semibold">Products</h1>
-
-      <input id="search" type="text" placeholder="Search products..." 
+      <input id="search" type="text" placeholder="Search products..."
              class="border px-3 py-2 rounded w-64"/>
     </section>
 
-    <section id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></section>
+    <!-- PRODUCT GRID -->
+    <section id="productsGrid"
+      class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></section>
 
+    <!-- PAGINATION -->
     <nav class="mt-8 flex justify-center gap-3">
       <button id="prevPage" class="px-3 py-1 border rounded">Prev</button>
       <span id="pageInfo" class="px-3 py-1"></span>
       <button id="nextPage" class="px-3 py-1 border rounded">Next</button>
     </nav>
+
   </main>
 
   <!-- CART MODAL -->
@@ -88,7 +98,7 @@
     </div>
   </div>
 
-  <!-- LOGIN MODAL -->
+  <!-- LOGIN / SIGNUP MODAL -->
   <div id="loginModal"
        class="fixed inset-0 bg-black/40 hidden items-center justify-center">
     <div class="bg-white w-full max-w-md rounded-xl p-6">
@@ -124,6 +134,8 @@
     </div>
   </div>
 
+  <!-- MAIN SCRIPT -->
   <script src="script.js"></script>
+
 </body>
 </html>
