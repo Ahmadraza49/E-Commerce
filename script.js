@@ -14,7 +14,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ========== Utilities ========== */
 const $ = (id) => document.getElementById(id);
-const rup = (n) => "₹" + Number(n || 0).toLocaleString();
+const rup = (n) => "$" + Number(n || 0).toLocaleString();
 
 /* Image fallback */
 function setImageWithFallback(imgEl, url, title) {
@@ -452,3 +452,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     setupProductPage();
   else setupIndexPage();
 });
+
