@@ -29,19 +29,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function checkAuth() {
   const { data } = await sb.auth.getUser();
   const userArea = document.getElementById("userArea");
-  const userEmail = document.getElementById("userEmail");
   const btnLogin = document.getElementById("btnLogin");
+  const btnSignup = document.getElementById("btnSignup");
   const btnLogout = document.getElementById("btnLogout");
 
   if (data.user) {
-    if(userArea) userArea.style.display = "flex";        // show user area
-    if(userEmail) userEmail.style.display = "none";      // hide only email
-    if(btnLogin) btnLogin.style.display = "none";        // hide login
-    if(btnLogout) btnLogout.style.display = "inline-block"; // show logout
+    // Logged in
+    if (userArea) userArea.style.display = "flex";    // show user area
+    if (btnLogin) btnLogin.style.display = "none";    // hide login
+    if (btnSignup) btnSignup.style.display = "none";  // hide signup
+    if (btnLogout) btnLogout.style.display = "inline-block"; // show logout
   } else {
-    if(userArea) userArea.style.display = "none";        // hide entire area
-    if(btnLogin) btnLogin.style.display = "inline-block"; 
-    if(btnLogout) btnLogout.style.display = "none";      // hide logout
+    // Not logged in
+    if (userArea) userArea.style.display = "none";
+    if (btnLogin) btnLogin.style.display = "inline-block";
+    if (btnSignup) btnSignup.style.display = "inline-block";
+    if (btnLogout) btnLogout.style.display = "none";
   }
 }
 
@@ -61,18 +64,18 @@ async function loadProducts() {
   products = data; renderProducts();
 }
 
-function renderProducts(){
+function renderProducts() {
   const searchInput = document.getElementById("search");
   const productsGrid = document.getElementById("productsGrid");
-  const search = searchInput?.value.toLowerCase()||"";
-  const filtered = products.filter(p=>p.title.toLowerCase().includes(search));
-  const totalPages = Math.ceil(filtered.length/itemsPerPage);
-  if(currentPage>totalPages) currentPage=totalPages||1;
-  const start=(currentPage-1)*itemsPerPage;
-  const pageItems=filtered.slice(start,start+itemsPerPage);
+  const search = searchInput?.value.toLowerCase() || "";
+  const filtered = products.filter(p => p.title.toLowerCase().includes(search));
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  if(currentPage > totalPages) currentPage = totalPages || 1;
+  const start = (currentPage - 1) * itemsPerPage;
+  const pageItems = filtered.slice(start, start + itemsPerPage);
 
   if(productsGrid){
-    productsGrid.innerHTML=pageItems.map(p=>`
+    productsGrid.innerHTML = pageItems.map(p => `
       <div class="bg-white p-4 rounded shadow flex flex-col">
         <img src="${p.image_url}" class="h-48 w-full object-contain mb-2" />
         <h3 class="font-semibold">${p.title}</h3>
@@ -84,7 +87,7 @@ function renderProducts(){
   }
 
   const pageInfo = document.getElementById("pageInfo");
-  if(pageInfo) pageInfo.textContent=`Page ${currentPage} of ${totalPages||1}`;
+  if(pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages||1}`;
 }
 
 document.getElementById("search")?.addEventListener("input", ()=>{ currentPage=1; renderProducts(); });
@@ -94,21 +97,21 @@ document.getElementById("nextPage")?.addEventListener("click", ()=>{ currentPage
 /* ========================================================
    ========== CART ==========
 ======================================================== */
-function saveCart(){ localStorage.setItem("cart",JSON.stringify(cart)); }
+function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
 
-function updateCartUI(){
+function updateCartUI() {
   const cartItems = document.getElementById("cartItems");
   const cartCount = document.getElementById("cartCount");
   const cartTotal = document.getElementById("cartTotal");
   if(!cartItems || !cartCount || !cartTotal) return;
 
-  cartItems.innerHTML="";
-  let total=0;
+  cartItems.innerHTML = "";
+  let total = 0;
   cart.forEach((item,index)=>{
-    total+=item.price*item.qty;
-    const div=document.createElement("div");
-    div.className="flex justify-between items-center border-b pb-2";
-    div.innerHTML=`<div>
+    total += item.price * item.qty;
+    const div = document.createElement("div");
+    div.className = "flex justify-between items-center border-b pb-2";
+    div.innerHTML = `<div>
       <p class="font-semibold">${item.title}</p>
       <p class="text-sm text-gray-500">$${item.price} × ${item.qty}</p>
       ${item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mt-1"/>` : "" }
@@ -122,7 +125,7 @@ function updateCartUI(){
 
   document.querySelectorAll("#cartItems button").forEach(btn=>{
     btn.addEventListener("click",(e)=>{ 
-      const idx=e.target.dataset.index; 
+      const idx = e.target.dataset.index; 
       cart.splice(idx,1); 
       saveCart(); 
       updateCartUI(); 
@@ -145,7 +148,6 @@ async function setupProductPage(){
   const productDescEl = document.getElementById("productDesc");
   const productPriceEl = document.getElementById("productPrice");
   const productImagesEl = document.getElementById("productImages");
-
   const mainProductImageEl = document.getElementById("mainProductImage");
   if(mainProductImageEl) mainProductImageEl.src = "";
 
@@ -179,7 +181,6 @@ async function setupProductPage(){
     <img src="${url}" class="w-24 h-24 object-contain border rounded cursor-pointer hover:scale-105 transition"/>
   `).join("");
 
-  // Highlight first thumbnail
   const thumbnails = productImagesEl.querySelectorAll("img");
   if(thumbnails.length) thumbnails[0].classList.add("border-indigo-600");
 
