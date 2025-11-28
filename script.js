@@ -46,8 +46,7 @@ const nextPage = document.getElementById("nextPage");
 const pageInfo = document.getElementById("pageInfo");
 
 /* ========================================================
-   ========== INIT ==========
-========================================================= */
+   ========== INIT ========== */
 document.addEventListener("DOMContentLoaded", async () => {
   await checkAuth();
   if (productsGrid) loadProducts();
@@ -56,8 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 /* ========================================================
-   ========== AUTH ==========
-========================================================= */
+   ========== AUTH ========== */
 async function checkAuth() {
   const { data } = await sb.auth.getUser();
   if (data.user) {
@@ -72,11 +70,24 @@ async function checkAuth() {
 btnLogin?.addEventListener("click", ()=>loginModal.classList.remove("hidden"));
 cancelAuth?.addEventListener("click", ()=>{ loginModal.classList.add("hidden"); authMsg.textContent=""; });
 
-switchToSignup?.addEventListener("click", ()=>{ authTitle.textContent="Sign Up"; authDesc.textContent="Create your account."; submitAuth.textContent="Sign Up"; switchToSignup.style.display="none"; switchToLogin.style.display="inline"; });
-switchToLogin?.addEventListener("click", ()=>{ authTitle.textContent="Login"; authDesc.textContent="Enter your email and password."; submitAuth.textContent="Login"; switchToSignup.style.display="inline"; switchToLogin.style.display="none"; });
+switchToSignup?.addEventListener("click", ()=>{ 
+  authTitle.textContent="Sign Up"; 
+  authDesc.textContent="Create your account."; 
+  submitAuth.textContent="Sign Up"; 
+  switchToSignup.style.display="none"; 
+  switchToLogin.style.display="inline"; 
+});
+switchToLogin?.addEventListener("click", ()=>{ 
+  authTitle.textContent="Login"; 
+  authDesc.textContent="Enter your email and password."; 
+  submitAuth.textContent="Login"; 
+  switchToSignup.style.display="inline"; 
+  switchToLogin.style.display="none"; 
+});
 
 submitAuth?.addEventListener("click", async ()=>{
-  const email = authEmail.value.trim(); const pass = authPass.value.trim();
+  const email = authEmail.value.trim(); 
+  const pass = authPass.value.trim();
   if(!email || !pass){ authMsg.textContent="Please enter email & password."; return; }
   authMsg.textContent="Processing...";
   try{
@@ -100,8 +111,7 @@ btnReset?.addEventListener("click", async ()=>{
 btnLogout?.addEventListener("click", async ()=>{ await sb.auth.signOut(); location.reload(); });
 
 /* ========================================================
-   ========== PRODUCTS ==========
-========================================================= */
+   ========== PRODUCTS ========== */
 async function loadProducts() {
   const { data, error } = await sb.from("products").select("*");
   if(error){ console.error(error); return; }
@@ -134,8 +144,7 @@ prevPage?.addEventListener("click", ()=>{ if(currentPage>1){ currentPage--; rend
 nextPage?.addEventListener("click", ()=>{ currentPage++; renderProducts(); });
 
 /* ========================================================
-   ========== CART ==========
-========================================================= */
+   ========== CART ========== */
 btnCart?.addEventListener("click", ()=>cartModal.classList.remove("hidden"));
 closeCart?.addEventListener("click", ()=>cartModal.classList.add("hidden"));
 clearCartBtn?.addEventListener("click", ()=>{ cart=[]; saveCart(); updateCartUI(); });
@@ -158,56 +167,64 @@ function updateCartUI(){
   cartTotal.textContent=`₹${total}`;
 
   document.querySelectorAll("#cartItems button").forEach(btn=>{
-    btn.addEventListener("click",(e)=>{ const idx=e.target.dataset.index; cart.splice(idx,1); saveCart(); updateCartUI(); });
+    btn.addEventListener("click",(e)=>{ 
+      const idx=e.target.dataset.index; 
+      cart.splice(idx,1); 
+      saveCart(); 
+      updateCartUI(); 
+    });
   });
 }
 
 /* ========================================================
-   ========== PRODUCT PAGE ==========
-========================================================= */
+   ========== PRODUCT PAGE ========== */
 async function setupProductPage(){
   const addToCartBtn = document.getElementById("addToCart");
-  if(!addToCartBtn) return;
+  if(!addToCartBtn) return; // not a product page
 
-  const productTitleEl=document.getElementById("productTitle");
-  const productDescEl=document.getElementById("productDesc");
-  const productPriceEl=document.getElementById("productPrice");
-  const productImageEl=document.getElementById("productImage");
+  const productTitleEl = document.getElementById("productTitle");
+  const productDescEl = document.getElementById("productDesc");
+  const productPriceEl = document.getElementById("productPrice");
+  const productImageEl = document.getElementById("productImage");
 
-  const productId=new URLSearchParams(window.location.search).get("id");
-  if(!productId) return;
+  const productIdStr = new URLSearchParams(window.location.search).get("id");
+  const productId = productIdStr ? Number(productIdStr) : 0;
+  if(!productId){ alert("Invalid product!"); return; }
 
-  const { data, error } = await sb.from("products").select("*").eq("id",productId).maybeSingle();
-  if(error || !data) return;
+  const { data, error } = await sb.from("products")
+    .select("*")
+    .eq("id", productId)
+    .maybeSingle();
 
-  const product=data;
-  if(productTitleEl) productTitleEl.textContent=product.title;
-  if(productDescEl) productDescEl.textContent=product.description;
-  if(productPriceEl) productPriceEl.textContent=`₹${product.price}`;
-  if(productImageEl) productImageEl.src=product.image_url;
+  if(error || !data){ alert("Product not found!"); return; }
+
+  const product = data;
+  if(productTitleEl) productTitleEl.textContent = product.title;
+  if(productDescEl) productDescEl.textContent = product.description;
+  if(productPriceEl) productPriceEl.textContent = `₹${product.price}`;
+  if(productImageEl) productImageEl.src = product.image_url;
 
   addToCartBtn.addEventListener("click", ()=>{
-    const qty=parseInt(document.getElementById("quantity").value)||1;
-    const existing=cart.find(c=>c.id===product.id);
-    if(existing) existing.qty+=qty;
-    else cart.push({id:product.id,title:product.title,price:product.price,qty});
+    const qty = parseInt(document.getElementById("quantity")?.value) || 1;
+    const existing = cart.find(c => c.id === product.id);
+    if(existing) existing.qty += qty;
+    else cart.push({id: product.id, title: product.title, price: product.price, qty});
     saveCart(); updateCartUI(); alert("Added to cart!");
   });
 }
 
 /* ========================================================
-   ========== CHECKOUT ==========
-========================================================= */
+   ========== CHECKOUT ========== */
 checkoutBtn?.addEventListener("click", async ()=>{
-  const user=(await sb.auth.getUser()).data.user;
+  const user = (await sb.auth.getUser()).data.user;
   if(!user){ alert("Login first"); return; }
   if(!cart.length){ alert("Cart empty"); return; }
 
-  const order={
-    user_id:user.id,
+  const order = {
+    user_id: user.id,
     total: cart.reduce((a,b)=>a+b.price*b.qty,0),
     items: cart,
-    status:"Pending",
+    status: "Pending",
     created_at: new Date().toISOString()
   };
 
@@ -217,4 +234,3 @@ checkoutBtn?.addEventListener("click", async ()=>{
   cart=[]; saveCart(); updateCartUI();
   cartModal.classList.add("hidden");
 });
-
