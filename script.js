@@ -8,7 +8,7 @@ const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA";
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ========== Utilities ========== */
 const $ = (id) => document.getElementById(id);
@@ -66,10 +66,7 @@ function clearCart() {
 }
 
 function cartTotalValue() {
-  return loadCart().reduce(
-    (sum, i) => sum + Number(i.price) * Number(i.qty),
-    0
-  );
+  return loadCart().reduce((sum, i) => sum + Number(i.price) * Number(i.qty), 0);
 }
 
 /* ========== AUTH UI (Email HIDDEN) ========== */
@@ -78,9 +75,7 @@ async function initAuthUI() {
   const { data } = await sb.auth.getSession();
   setUser(data?.session?.user || null);
 
-  sb.auth.onAuthStateChange((_e, session) =>
-    setUser(session?.user || null)
-  );
+  sb.auth.onAuthStateChange((_e, session) => setUser(session?.user || null));
 }
 
 function setUser(user) {
@@ -88,7 +83,6 @@ function setUser(user) {
   const btnLogin = $("btnLogin");
   const btnLogout = $("btnLogout");
 
-  // EMAIL HIDE ALWAYS
   if ($("userEmail")) {
     $("userEmail").textContent = "";
     $("userEmail").style.display = "none";
@@ -136,9 +130,7 @@ function showAuthModal(mode = "login") {
   const m = $("loginModal");
   if (!m) return;
 
-  $("authTitle").textContent =
-    mode === "signup" ? "Create Account" : "Login";
-
+  $("authTitle").textContent = mode === "signup" ? "Create Account" : "Login";
   $("authDesc").textContent =
     mode === "signup"
       ? "Create an account with email & password."
@@ -148,14 +140,10 @@ function showAuthModal(mode = "login") {
   $("authEmail").value = "";
   $("authPass").value = "";
 
-  $("submitAuth").textContent =
-    mode === "signup" ? "Sign Up" : "Login";
+  $("submitAuth").textContent = mode === "signup" ? "Sign Up" : "Login";
 
-  $("switchToSignup").style.display =
-    mode === "signup" ? "none" : "inline";
-
-  $("switchToLogin").style.display =
-    mode === "signup" ? "inline" : "none";
+  $("switchToSignup").style.display = mode === "signup" ? "none" : "inline";
+  $("switchToLogin").style.display = mode === "signup" ? "inline" : "none";
 
   m.classList.remove("hidden");
   m.classList.add("flex");
@@ -182,7 +170,10 @@ function showAuthModal(mode = "login") {
       mode === "signup" ? "Account created!" : "Login successful!";
     msg.style.color = "green";
 
-    setTimeout(() => (m.classList.add("hidden"), location.reload()), 300);
+    setTimeout(() => {
+      m.classList.add("hidden");
+      location.reload();
+    }, 300);
   };
 
   $("cancelAuth").onclick = () => m.classList.add("hidden");
@@ -204,10 +195,7 @@ function updateCartUI() {
   const cart = loadCart();
 
   if ($("cartCount"))
-    $("cartCount").textContent = cart.reduce(
-      (s, i) => s + Number(i.qty),
-      0
-    );
+    $("cartCount").textContent = cart.reduce((s, i) => s + Number(i.qty), 0);
 
   const wrap = $("cartItems");
   if (!wrap) return;
@@ -236,9 +224,7 @@ function updateCartUI() {
 
     wrap.querySelectorAll(".removeBtn").forEach((b) => {
       b.onclick = () => {
-        const newCart = loadCart().filter(
-          (x) => x.id !== b.dataset.id
-        );
+        const newCart = loadCart().filter((x) => x.id !== b.dataset.id);
         saveCart(newCart);
       };
     });
@@ -260,12 +246,10 @@ async function checkoutHandler() {
   const { data } = await sb.auth.getUser();
   const user = data?.user;
 
-  if (!user)
-    return showAuthModal("login");
+  if (!user) return showAuthModal("login");
 
   const cart = loadCart();
-  if (!cart.length)
-    return alert("Cart empty");
+  if (!cart.length) return alert("Cart empty");
 
   const order = {
     user_id: user.id,
@@ -291,10 +275,8 @@ let PAGE = 1;
 const PER_PAGE = 6;
 
 async function setupIndexPage() {
-  // If category param present, inject into UI search (so user sees it's filtered)
   const urlCat = new URLSearchParams(location.search).get("category");
   if (urlCat && $("search")) {
-    // Use search input placeholder as informational hint
     $("search").value = "";
     $("search").placeholder = `Filtering category: ${urlCat}`;
   }
@@ -320,24 +302,22 @@ async function setupIndexPage() {
 }
 
 function normalizeDesignImagesField(field) {
-  // field might be null, JSON string, array, or comma-separated string
   if (!field) return [];
   if (Array.isArray(field)) return field;
+
   if (typeof field === "string") {
-    // try parse JSON
     try {
       const parsed = JSON.parse(field);
       if (Array.isArray(parsed)) return parsed;
-    } catch (e) {
-      // not JSON — fall through
-    }
-    // comma-separated?
+    } catch {}
+
     if (field.includes(",")) {
-      return field.split(",").map(s => s.trim()).filter(Boolean);
+      return field.split(",").map((s) => s.trim()).filter(Boolean);
     }
-    // single URL string:
+
     return [field.trim()];
   }
+
   return [];
 }
 
@@ -348,10 +328,7 @@ async function loadProducts() {
   const q = ($("search")?.value || "").toLowerCase();
   const urlCat = new URLSearchParams(location.search).get("category");
 
-  const { data, error } = await sb
-    .from("products")
-    .select("*")
-    .order("id");
+  const { data, error } = await sb.from("products").select("*").order("id");
 
   if (error) {
     grid.innerHTML = "Error loading products";
@@ -361,14 +338,20 @@ async function loadProducts() {
   let list = data || [];
 
   if (urlCat) {
-    list = list.filter((p) => String(p.category || "").toLowerCase() === String(urlCat).toLowerCase());
+    list = list.filter(
+      (p) =>
+        String(p.category || "").toLowerCase() ===
+        String(urlCat).toLowerCase()
+    );
   }
 
-  if (q) list = list.filter((p) =>
-    String(p.title || "").toLowerCase().includes(q) ||
-    String(p.description || "").toLowerCase().includes(q) ||
-    String(p.category || "").toLowerCase().includes(q)
-  );
+  if (q)
+    list = list.filter(
+      (p) =>
+        String(p.title || "").toLowerCase().includes(q) ||
+        String(p.description || "").toLowerCase().includes(q) ||
+        String(p.category || "").toLowerCase().includes(q)
+    );
 
   const start = (PAGE - 1) * PER_PAGE;
   const items = list.slice(start, start + PER_PAGE);
@@ -384,7 +367,13 @@ async function loadProducts() {
     const div = document.createElement("div");
     div.className = "bg-white shadow rounded p-3";
 
-    const categoryBadge = p.category ? `<a href="index.html?category=${encodeURIComponent(p.category)}" class="inline-block mb-2 text-xs px-2 py-1 bg-gray-100 rounded">${escapeHtml(p.category)}</a>` : "";
+    const categoryBadge = p.category
+      ? `<a href="index.html?category=${encodeURIComponent(
+          p.category
+        )}" class="inline-block mb-2 text-xs px-2 py-1 bg-gray-100 rounded">${escapeHtml(
+          p.category
+        )}</a>`
+      : "";
 
     div.innerHTML = `
       ${categoryBadge}
@@ -411,29 +400,26 @@ async function loadProducts() {
     );
   });
 
-  // update pageInfo
   $("pageInfo").textContent = `Page ${PAGE}`;
 
-  document
-    .querySelectorAll(".addNow")
-    .forEach((btn) => {
-      btn.onclick = async () => {
-        const { data: p } = await sb
-          .from("products")
-          .select("*")
-          .eq("id", btn.dataset.id)
-          .single();
+  document.querySelectorAll(".addNow").forEach((btn) => {
+    btn.onclick = async () => {
+      const { data: p } = await sb
+        .from("products")
+        .select("*")
+        .eq("id", btn.dataset.id)
+        .single();
 
-        addToCart({
-          id: String(p.id),
-          title: p.title,
-          price: p.price,
-          qty: 1,
-        });
+      addToCart({
+        id: String(p.id),
+        title: p.title,
+        price: p.price,
+        qty: 1,
+      });
 
-        alert("Added to cart");
-      };
-    });
+      alert("Added to cart");
+    };
+  });
 }
 
 /* ========== PRODUCT PAGE ========== */
@@ -457,17 +443,16 @@ async function setupProductPage() {
   $("productDesc").textContent = p.description || "";
   $("productPrice").textContent = rup(p.price);
 
-  // main image
   setImageWithFallback($("productImage"), p.image_url, p.title);
 
-  // category button
   if ($("productCategory")) {
     const catBtn = $("productCategory");
     if (p.category) {
       catBtn.textContent = p.category;
       catBtn.onclick = () => {
-        // go back to index with category filter
-        location.href = `index.html?category=${encodeURIComponent(p.category)}`;
+        location.href = `index.html?category=${encodeURIComponent(
+          p.category
+        )}`;
       };
       catBtn.style.display = "inline-block";
     } else {
@@ -475,27 +460,28 @@ async function setupProductPage() {
     }
   }
 
-  // designs gallery (multiple images)
   if ($("designGallery")) {
     const gallery = $("designGallery");
     gallery.innerHTML = "";
 
     const designs = normalizeDesignImagesField(p.design_images);
 
-    // include primary image as first thumbnail if no designs
     if (!designs.length && p.image_url) {
       const t = document.createElement("img");
       t.src = p.image_url;
       t.className = "h-20 w-28 object-cover rounded border cursor-pointer";
-      t.onclick = () => setImageWithFallback($("productImage"), p.image_url, p.title);
+      t.onclick = () =>
+        setImageWithFallback($("productImage"), p.image_url, p.title);
       gallery.appendChild(t);
     } else {
-      designs.forEach((dUrl, idx) => {
+      designs.forEach((dUrl) => {
         const t = document.createElement("img");
         t.src = dUrl;
         t.className = "h-20 w-28 object-cover rounded border cursor-pointer";
-        t.onerror = () => (t.src = `https://placehold.co/200x150?text=Image`);
-        t.onclick = () => setImageWithFallback($("productImage"), dUrl, p.title);
+        t.onerror = () =>
+          (t.src = `https://placehold.co/200x150?text=Image`);
+        t.onclick = () =>
+          setImageWithFallback($("productImage"), dUrl, p.title);
         gallery.appendChild(t);
       });
     }
@@ -543,7 +529,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     showAuthModal("login")
   );
 
-  if (location.pathname.includes("product.html"))
-    setupProductPage();
+  if (location.pathname.includes("product.html")) setupProductPage();
   else setupIndexPage();
 });
