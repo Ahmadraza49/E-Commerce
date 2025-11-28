@@ -5,47 +5,91 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Product — MyShop</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
 </head>
+
 <body class="bg-gray-50 min-h-screen text-gray-800">
+
+  <!-- Header -->
   <header class="bg-white shadow">
     <div class="container mx-auto px-4 py-4 flex items-center justify-between">
       <a href="index.html" class="text-xl font-bold">MyShop</a>
+
       <div class="flex items-center gap-3">
         <a href="index.html" class="px-3 py-1 border rounded">Products</a>
-        <button id="btnCartHeader" class="px-3 py-1 border rounded">Cart</button>
+        <button id="btnCartOpen" class="px-3 py-1 border rounded">Cart</button>
       </div>
     </div>
   </header>
 
+  <!-- Product -->
   <main class="container mx-auto px-4 py-8">
     <div id="productWrap" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-      <!-- Product left: image -->
+
+      <!-- Left Image -->
       <div id="imgWrap" class="bg-white rounded p-4 flex items-center justify-center">
-        <img id="productImage" src="" alt="Product image" class="max-h-96 object-contain"/>
+        <img id="productImage" src="" class="max-h-96 object-contain"/>
       </div>
-      <!-- Product right: details -->
+
+      <!-- Right Details -->
       <div class="bg-white rounded p-6">
         <h1 id="productTitle" class="text-2xl font-semibold mb-2"></h1>
         <p id="productDesc" class="mb-4 text-sm text-gray-600"></p>
+
         <div class="mb-4">
           <span class="text-3xl font-bold" id="productPrice">₹0</span>
         </div>
+
         <div class="flex gap-3 items-center">
-          <input id="quantity" type="number" value="1" min="1" class="w-20 border px-3 py-2 rounded"/>
-          <button id="addToCart" class="px-4 py-2 bg-indigo-600 text-white rounded">Add to Cart</button>
+          <input id="quantity" type="number" value="1" min="1"
+                 class="w-20 border px-3 py-2 rounded"/>
+
+          <button id="btnAddToCart"
+            class="px-4 py-2 bg-indigo-600 text-white rounded">
+            Add to Cart
+          </button>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Reuse cart modal + login modal from index: include app.js -->
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  <!-- Supabase & App JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js"></script>
+
+  <script>
+    /* Load product from URL */
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+
+    const product = JSON.parse(localStorage.getItem("selectedProduct"));
+
+    if (!product) {
+      document.getElementById("productWrap").innerHTML =
+        "<p class='text-center text-red-500'>Product not found!</p>";
+    } else {
+      document.getElementById("productImage").src = product.image_url;
+      document.getElementById("productTitle").innerText = product.title;
+      document.getElementById("productDesc").innerText = product.description;
+      document.getElementById("productPrice").innerText = "₹" + product.price;
+    }
+
+    /* ADD TO CART BUTTON */
+    document.getElementById("btnAddToCart").onclick = () => {
+      const qty = parseInt(document.getElementById("quantity").value);
+
+      addToCart({
+        id: product.id,
+        title: product.title,
+        price: product.price,
+        img: product.image_url,
+        qty: qty
+      });
+
+      alert("Added to cart!");
+    };
+
+    /* Cart Button */
+    document.getElementById("btnCartOpen").onclick = openCartModal;
+  </script>
 </body>
 </html>
-
-
-
-
