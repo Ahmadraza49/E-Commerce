@@ -1,11 +1,10 @@
 /* =======================================================
-   script.js — Complete JS for MyShop
+   script.js — Complete JS for MyShop (Fixed)
 ======================================================= */
 
 /* ========== Supabase Setup ========== */
 const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA; // replace with your full anon key
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA"; // <-- replace with full anon key
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ========== Global Variables ========== */
@@ -14,7 +13,9 @@ let cart = JSON.parse(localStorage.getItem("cart")) || [];
 let currentPage = 1;
 const itemsPerPage = 6;
 
-/* ========== AUTH MODAL ========== */
+/* ========================================================
+   ========== AUTH SETUP ==========
+========================================================= */
 const loginModal = document.getElementById("loginModal");
 const btnLogin = document.getElementById("btnLogin");
 const cancelAuth = document.getElementById("cancelAuth");
@@ -32,7 +33,7 @@ const userArea = document.getElementById("userArea");
 const userEmail = document.getElementById("userEmail");
 const btnLogout = document.getElementById("btnLogout");
 
-/* ========== CART MODAL ========== */
+/* ========== CART SETUP ========= */
 const cartModal = document.getElementById("cartModal");
 const btnCart = document.getElementById("btnCart");
 const closeCart = document.getElementById("closeCart");
@@ -42,18 +43,21 @@ const clearCartBtn = document.getElementById("clearCart");
 const checkoutBtn = document.getElementById("checkout");
 const cartCount = document.getElementById("cartCount");
 
-/* ========== INDEX PAGE ELEMENTS ========== */
+/* ========== INDEX PAGE ELEMENTS ========= */
 const productsGrid = document.getElementById("productsGrid");
 const searchInput = document.getElementById("search");
 const prevPage = document.getElementById("prevPage");
 const nextPage = document.getElementById("nextPage");
 const pageInfo = document.getElementById("pageInfo");
 
-/* ========== PAGE INIT ========== */
+/* ========================================================
+   ========== PAGE INIT ==========
+========================================================= */
 document.addEventListener("DOMContentLoaded", async () => {
   await checkAuth();
   if (productsGrid) loadProducts();
   if (btnCart) updateCartUI();
+  setupProductPage(); // for product.html
 });
 
 /* ========================================================
@@ -62,23 +66,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function checkAuth() {
   const { data } = await sb.auth.getUser();
   if (data.user) {
-    userArea.style.display = "flex";
-    userEmail.textContent = data.user.email;
-    btnLogin.style.display = "none";
+    if(userArea) { userArea.style.display = "flex"; userEmail.textContent = data.user.email; }
+    if(btnLogin) btnLogin.style.display = "none";
   } else {
-    userArea.style.display = "none";
-    btnLogin.style.display = "inline-block";
+    if(userArea) userArea.style.display = "none";
+    if(btnLogin) btnLogin.style.display = "inline-block";
   }
 }
 
-btnLogin?.addEventListener("click", () => {
-  loginModal.classList.remove("hidden");
-});
-
-cancelAuth?.addEventListener("click", () => {
-  loginModal.classList.add("hidden");
-  authMsg.textContent = "";
-});
+btnLogin?.addEventListener("click", () => loginModal.classList.remove("hidden"));
+cancelAuth?.addEventListener("click", () => { loginModal.classList.add("hidden"); authMsg.textContent = ""; });
 
 switchToSignup?.addEventListener("click", () => {
   authTitle.textContent = "Sign Up";
@@ -99,12 +96,8 @@ switchToLogin?.addEventListener("click", () => {
 submitAuth?.addEventListener("click", async () => {
   const email = authEmail.value.trim();
   const pass = authPass.value.trim();
-  if (!email || !pass) {
-    authMsg.textContent = "Please enter email & password.";
-    return;
-  }
+  if (!email || !pass) { authMsg.textContent = "Please enter email & password."; return; }
   authMsg.textContent = "Processing...";
-
   try {
     if (submitAuth.textContent === "Login") {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
@@ -126,13 +119,10 @@ btnReset?.addEventListener("click", async () => {
   else authMsg.textContent = "Check your email to reset password.";
 });
 
-btnLogout?.addEventListener("click", async () => {
-  await sb.auth.signOut();
-  location.reload();
-});
+btnLogout?.addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
 
 /* ========================================================
-   ========== PRODUCTS ==========
+   ========== PRODUCTS / INDEX ==========
 ========================================================= */
 async function loadProducts() {
   const { data, error } = await sb.from("products").select("*");
@@ -146,29 +136,29 @@ function renderProducts() {
   const filtered = products.filter(p => p.title.toLowerCase().includes(search));
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   if (currentPage > totalPages) currentPage = totalPages || 1;
-
   const start = (currentPage - 1) * itemsPerPage;
   const pageItems = filtered.slice(start, start + itemsPerPage);
 
-  productsGrid.innerHTML = pageItems.map(p => `
-    <div class="bg-white p-4 rounded shadow flex flex-col">
-      <img src="${p.image_url}" class="h-48 w-full object-contain mb-2" />
-      <h3 class="font-semibold">${p.title}</h3>
-      <p class="text-gray-500">${p.description.substring(0, 50)}...</p>
-      <p class="text-xl font-bold mt-2">₹${p.price}</p>
-      <a href="product.html?id=${p.id}" class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded text-center">View</a>
-    </div>
-  `).join("");
-
-  pageInfo.textContent = `Page ${currentPage} of ${totalPages || 1}`;
+  if(productsGrid) {
+    productsGrid.innerHTML = pageItems.map(p => `
+      <div class="bg-white p-4 rounded shadow flex flex-col">
+        <img src="${p.image_url}" class="h-48 w-full object-contain mb-2" />
+        <h3 class="font-semibold">${p.title}</h3>
+        <p class="text-gray-500">${p.description.substring(0,50)}...</p>
+        <p class="text-xl font-bold mt-2">₹${p.price}</p>
+        <a href="product.html?id=${p.id}" class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded text-center">View</a>
+      </div>
+    `).join("");
+  }
+  if(pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages || 1}`;
 }
 
 searchInput?.addEventListener("input", () => { currentPage = 1; renderProducts(); });
-prevPage?.addEventListener("click", () => { if (currentPage>1) { currentPage--; renderProducts(); }});
+prevPage?.addEventListener("click", () => { if(currentPage>1){ currentPage--; renderProducts(); }});
 nextPage?.addEventListener("click", () => { currentPage++; renderProducts(); });
 
 /* ========================================================
-   ========== CART FUNCTIONS ==========
+   ========== CART ==========
 ========================================================= */
 btnCart?.addEventListener("click", () => cartModal.classList.remove("hidden"));
 closeCart?.addEventListener("click", () => cartModal.classList.add("hidden"));
@@ -177,9 +167,10 @@ clearCartBtn?.addEventListener("click", () => { cart=[]; saveCart(); updateCartU
 function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
 
 function updateCartUI() {
+  if(!cartItems || !cartCount || !cartTotal) return;
   cartItems.innerHTML = "";
   let total = 0;
-  cart.forEach((item, index) => {
+  cart.forEach((item,index) => {
     total += item.price * item.qty;
     const div = document.createElement("div");
     div.className = "flex justify-between items-center border-b pb-2";
@@ -194,33 +185,42 @@ function updateCartUI() {
   });
   cartCount.textContent = cart.length;
   cartTotal.textContent = `₹${total}`;
+
   document.querySelectorAll("#cartItems button").forEach(btn => {
-    btn.addEventListener("click", (e) => {
+    btn.addEventListener("click",(e)=> {
       const idx = e.target.dataset.index;
       cart.splice(idx,1); saveCart(); updateCartUI();
     });
   });
 }
 
-/* Add product to cart from product page */
-const addToCartBtn = document.getElementById("addToCart");
-if (addToCartBtn) {
-  const productId = new URLSearchParams(window.location.search).get("id");
-  let product = null;
-  sb.from("products").select("*").eq("id", productId).then(({data}) => {
-    if(data.length) {
-      product = data[0];
-      document.getElementById("productTitle").textContent = product.title;
-      document.getElementById("productDesc").textContent = product.description;
-      document.getElementById("productPrice").textContent = `₹${product.price}`;
-      document.getElementById("productImage").src = product.image_url;
-    }
-  });
+/* ========================================================
+   ========== PRODUCT PAGE ==========
+========================================================= */
+async function setupProductPage() {
+  const addToCartBtn = document.getElementById("addToCart");
+  if(!addToCartBtn) return; // not product.html
 
-  addToCartBtn.addEventListener("click", () => {
+  const productTitleEl = document.getElementById("productTitle");
+  const productDescEl = document.getElementById("productDesc");
+  const productPriceEl = document.getElementById("productPrice");
+  const productImageEl = document.getElementById("productImage");
+
+  const productId = new URLSearchParams(window.location.search).get("id");
+  if(!productId){ alert("Product not found!"); return; }
+
+  const { data, error } = await sb.from("products").select("*").eq("id", productId).maybeSingle();
+  if(error || !data){ alert("Product not found!"); return; }
+
+  const product = data;
+  if(productTitleEl) productTitleEl.textContent = product.title;
+  if(productDescEl) productDescEl.textContent = product.description;
+  if(productPriceEl) productPriceEl.textContent = `₹${product.price}`;
+  if(productImageEl) productImageEl.src = product.image_url;
+
+  addToCartBtn.addEventListener("click",()=>{
     const qty = parseInt(document.getElementById("quantity").value) || 1;
-    if(!product) return;
-    const existing = cart.find(c => c.id===product.id);
+    const existing = cart.find(c => c.id === product.id);
     if(existing) existing.qty += qty;
     else cart.push({ id: product.id, title: product.title, price: product.price, qty });
     saveCart(); updateCartUI();
@@ -231,9 +231,9 @@ if (addToCartBtn) {
 /* ========================================================
    ========== CHECKOUT / ORDERS ==========
 ========================================================= */
-checkoutBtn?.addEventListener("click", async () => {
+checkoutBtn?.addEventListener("click", async ()=>{
   const user = (await sb.auth.getUser()).data.user;
-  if(!user) { alert("Login first"); return; }
+  if(!user){ alert("Login first"); return; }
   if(!cart.length){ alert("Cart empty"); return; }
 
   const order = {
@@ -250,4 +250,3 @@ checkoutBtn?.addEventListener("click", async () => {
   cart=[]; saveCart(); updateCartUI();
   cartModal.classList.add("hidden");
 });
-
