@@ -4,66 +4,45 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Product — MyShop</title>
-
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
 
-<body class="bg-gray-50 min-h-screen">
+<header class="bg-white shadow">
+  <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="index.html" class="text-xl font-bold">MyShop</a>
+    <button id="btnCart" class="px-3 py-1 border rounded">Cart</button>
+  </div>
+</header>
 
-  <!-- HEADER -->
-  <header class="bg-white shadow">
-    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-      <a href="index.html" class="text-xl font-bold text-indigo-600">MyShop</a>
+<main class="container mx-auto px-4 py-8">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
-      <button onclick="window.history.back()" class="px-3 py-1 border rounded">
-        ← Back
-      </button>
-    </div>
-  </header>
+    <!-- Images section -->
+    <div class="bg-white p-4 rounded mb-4">
+      <!-- Main image -->
+      <img id="mainProductImage" class="w-full max-h-96 object-contain mb-4 border rounded" />
 
-
-  <!-- MAIN -->
-  <main class="container mx-auto px-4 py-6">
-
-    <!-- Product Card -->
-    <div id="productContainer"
-      class="bg-white shadow rounded-xl p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      <!-- Left Side (Images) -->
-      <div>
-        <img id="mainImage"
-          class="w-full h-80 object-cover rounded-lg border shadow-sm"
-          src="" alt="Product Image" />
-
-        <div id="thumbs" class="mt-4 flex gap-2 overflow-x-auto"></div>
-      </div>
-
-      <!-- Right Side (Details) -->
-      <div>
-        <h1 id="productName" class="text-2xl font-semibold mb-2"></h1>
-
-        <div class="text-lg font-bold text-indigo-600 mb-4">
-          $<span id="productPrice"></span>
-        </div>
-
-        <p id="productDesc" class="text-gray-700 leading-relaxed mb-6"></p>
-
-        <button id="addToCart"
-          class="px-4 py-2 bg-indigo-600 text-white rounded-lg">
-          Add to Cart
-        </button>
-      </div>
-
+      <!-- Thumbnails -->
+      <div id="productImages" class="flex gap-2 overflow-x-auto"></div>
     </div>
 
-  </main>
+    <!-- Details -->
+    <div class="bg-white p-6 rounded">
+      <h1 id="productTitle" class="text-2xl font-bold mb-2"></h1>
+      <p id="productDesc" class="text-gray-600 mb-4"></p>
+      <h2 id="productPrice" class="text-3xl font-bold mb-4"></h2>
 
-  <!-- JS -->
-  <script src="script.js"></script>
+      <div class="flex items-center gap-3 mb-6">
+        <input id="quantity" type="number" value="1" min="1" class="w-20 border px-3 py-2 rounded" />
+        <button id="addToCart" class="px-6 py-2 bg-indigo-600 text-white rounded">Add to Cart</button>
+      </div>
+    </div>
 
+  </div>
+</main>
+
+<script src="script.js"></script>
 </body>
 </html>
