@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (qs("productsGrid")) await loadProducts();
   updateCartUI();
-  await setupProductPage();  // Product page loader
+  await setupProductPage(); 
 
   attachAuthModalHandlers();
 
@@ -42,7 +42,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateCartUI();
   });
 
-  // Search + Pagination
   qs("search")?.addEventListener("input", () => {
     currentPage = 1;
     renderProducts();
@@ -60,7 +59,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderProducts();
   });
 
-  // Checkout
   qs("checkout")?.addEventListener("click", async () => {
     const user = (await sb.auth.getUser()).data?.user;
     if (!user) return toast("Please login first");
@@ -161,7 +159,7 @@ function renderProducts() {
 }
 
 /* ============================================================
-   PRODUCT PAGE — FINAL FIXED DESIGN IMAGES FROM FULL URL
+   PRODUCT PAGE — FINAL FIXED DESIGN IMAGES
 ============================================================ */
 async function setupProductPage() {
   if (!qs("addToCart")) return;
@@ -176,7 +174,6 @@ async function setupProductPage() {
 
   if (!product) return;
 
-  // Set text info
   qs("productTitle").textContent = product.title;
   qs("productDesc").textContent = product.description;
   qs("productPrice").textContent = "$" + product.price;
@@ -184,12 +181,9 @@ async function setupProductPage() {
   const mainImg = qs("mainProductImage");
   const gallery = qs("productImages");
 
-  /* ========== FIX: Direct FULL URL Support ========== */
   let allImages = [];
 
-  if (product.image_url) {
-    allImages.push(product.image_url);
-  }
+  if (product.image_url) allImages.push(product.image_url);
 
   if (Array.isArray(product.design_images)) {
     allImages = allImages.concat(product.design_images);
@@ -197,9 +191,7 @@ async function setupProductPage() {
 
   allImages = [...new Set(allImages)];
 
-  if (allImages.length) {
-    mainImg.src = allImages[0];
-  }
+  if (allImages.length) mainImg.src = allImages[0];
 
   gallery.innerHTML = "";
   allImages.forEach(url => {
@@ -215,7 +207,6 @@ async function setupProductPage() {
     gallery.appendChild(img);
   });
 
-  // Add to Cart
   qs("addToCart").addEventListener("click", () => {
     const qty = Number(qs("quantity").value) || 1;
 
