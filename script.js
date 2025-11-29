@@ -1,5 +1,5 @@
 /* =======================================================
-   FINAL script.js — Auth + Reset + Products + Cart + Orders + Product Designs
+   FINAL script.js — Auth + Reset + Products + Cart + Orders + Designs
 ======================================================= */
 
 /* ========== Supabase Setup ========== */
@@ -131,9 +131,8 @@ function renderProducts() {
   if (!grid) return;
 
   const search = (qs("search")?.value || "").toLowerCase();
-  const filtered = products.filter(p => (p.title || "")
-    .toLowerCase()
-    .includes(search)
+  const filtered = products.filter(p =>
+    (p.title || "").toLowerCase().includes(search)
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
@@ -180,7 +179,6 @@ async function setupProductPage() {
 
   let allImages = [];
 
-  /** FIX — Force JSON parse */
   let designImgs = [];
   try {
     designImgs = typeof product.design_images === "string"
@@ -274,9 +272,67 @@ function updateCartUI() {
 
   cartItems.querySelectorAll(".decrease").forEach(b => {
     b.onclick = () => {
-      cart[b.dataset.i].qty = Math.max(1, cart[b.dataset.i].qty - 1);
+      if (cart[b.dataset.i].qty > 1) cart[b.dataset.i].qty--;
       saveCart();
       updateCartUI();
     };
+  });
+}
+
+/* ================= AUTH MODAL HANDLERS ================= */
+function attachAuthModalHandlers() {
+  const loginModal = qs("loginModal");
+  const btnLogin = qs("btnLogin");
+  const cancelAuth = qs("cancelAuth");
+  const submitAuth = qs("submitAuth");
+  const switchToSignup = qs("switchToSignup");
+  const switchToLogin = qs("switchToLogin");
+  const btnReset = qs("btnReset");
+  const authMsg = qs("authMsg");
+
+  btnLogin?.addEventListener("click", () => show(loginModal));
+  cancelAuth?.addEventListener("click", () => hide(loginModal));
+
+  switchToSignup?.addEventListener("click", () => {
+    qs("authTitle").textContent = "Signup";
+    qs("authDesc").textContent = "Create your account.";
+    submitAuth.textContent = "Signup";
+    hide(switchToSignup);
+    show(switchToLogin);
+  });
+
+  switchToLogin?.addEventListener("click", () => {
+    qs("authTitle").textContent = "Login";
+    qs("authDesc").textContent = "Enter your credentials.";
+    submitAuth.textContent = "Login";
+    hide(switchToLogin);
+    show(switchToSignup);
+  });
+
+  submitAuth?.addEventListener("click", async () => {
+    const email = qs("authEmail").value.trim();
+    const pass = qs("authPass").value.trim();
+
+    authMsg.textContent = "Processing...";
+
+    if (submitAuth.textContent === "Login") {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) authMsg.textContent = error.message;
+      else location.reload();
+    } else {
+      const { error } = await sb.auth.signUp({ email, password: pass });
+      authMsg.textContent = error ? error.message : "Signup successful! Check your email.";
+    }
+  });
+
+  btnReset?.addEventListener("click", async () => {
+    const email = qs("authEmail").value.trim();
+    if (!email) return alert("Enter your email first!");
+
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + "/reset.html"
+    });
+
+    alert(error ? error.message : "Reset email sent!");
   });
 }
