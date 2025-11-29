@@ -3,103 +3,83 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Product — MyShop</title>
+  <title>MyShop — Products</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="script.js"></script>
 </head>
 
-<body class="bg-gray-50 min-h-screen text-gray-800">
+<body class="bg-gray-100">
+  <!-- NAV -->
+  <div class="p-4 bg-white shadow flex justify-between items-center">
+    <h1 class="text-xl font-bold">MyShop</h1>
 
-<!-- HEADER -->
-<header class="bg-white shadow">
-  <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-    <a href="index.html" class="text-xl font-bold">MyShop</a>
-
-    <div class="flex items-center gap-4">
-
-      <!-- Login Button -->
-      <button id="btnLogin" class="px-3 py-1 border rounded">Login</button>
-
-      <!-- User info -->
-      <div id="userArea" class="items-center gap-3 hidden">
-        <span id="userEmail" class="font-medium"></span>
-        <button id="btnLogout" class="px-3 py-1 border rounded">Logout</button>
-        <button id="btnMyOrders" onclick="location.href='orders.html'" class="px-3 py-1 border rounded hidden">
-          My Orders
-        </button>
-      </div>
-
-      <!-- Cart -->
-      <button id="btnCart" class="px-3 py-1 border rounded relative">
-        Cart (<span id="cartCount">0</span>)
-      </button>
+    <div class="flex gap-3">
+      <button id="loginBtn" class="bg-blue-600 text-white px-3 py-1 rounded">Login</button>
+      <button id="logoutBtn" class="hidden bg-red-600 text-white px-3 py-1 rounded">Logout</button>
+      <button id="ordersPageBtn" class="hidden bg-green-600 text-white px-3 py-1 rounded">My Orders</button>
+      <button id="cartOpenBtn" class="bg-black text-white px-3 py-1 rounded">Cart</button>
     </div>
   </div>
-</header>
 
-<!-- MAIN CONTENT -->
-<main class="container mx-auto px-4 py-8">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-    
-    <!-- Images -->
-    <div class="bg-white p-4 rounded mb-4">
-      <img id="mainProductImage" class="w-full max-h-96 object-contain mb-4 border rounded" />
-    </div>
+  <!-- PRODUCT LIST -->
+  <div id="products" class="p-4 grid grid-cols-2 md:grid-cols-4 gap-4"></div>
 
-    <!-- Product Details -->
-    <div class="bg-white p-6 rounded">
-      <h1 id="productTitle" class="text-2xl font-bold mb-2"></h1>
-      <p id="productDesc" class="text-gray-600 mb-4"></p>
-      <h2 id="productPrice" class="text-3xl font-bold mb-4"></h2>
+  <!-- CART MODAL -->
+  <div id="cartModal" class="hidden fixed inset-0 bg-black/50 flex justify-center items-center">
+    <div class="bg-white p-4 w-80 rounded">
+      <h2 class="text-lg font-bold mb-3">Your Cart</h2>
+      <div id="cartItems"></div>
+      <p id="cartTotal" class="font-bold mt-3"></p>
 
-      <div class="flex items-center gap-3 mb-6">
-        <input id="quantity" type="number" value="1" min="1" class="w-20 border px-3 py-2 rounded" />
-        <button id="addToCart" class="px-6 py-2 bg-indigo-600 text-white rounded">Add to Cart</button>
-      </div>
+      <button id="checkoutBtn" class="bg-green-600 text-white px-3 py-1 rounded mt-4 w-full">Checkout</button>
+      <button id="closeCart" class="bg-gray-600 text-white px-3 py-1 rounded mt-2 w-full">Close</button>
     </div>
   </div>
-</main>
 
-<!-- ================= CART MODAL ================= -->
-<div id="cartModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center">
-  <div class="bg-white p-6 rounded w-96">
-    <h2 class="text-xl font-bold mb-4">Your Cart</h2>
+  <!-- LOGIN MODAL -->
+  <div id="loginModal" class="hidden fixed inset-0 bg-black/50 flex justify-center items-center">
+    <div class="bg-white p-4 w-80 rounded">
+      <h2 class="text-xl font-bold mb-3">Login</h2>
 
-    <div id="cartItems" class="max-h-64 overflow-y-auto"></div>
+      <input id="loginEmail" class="w-full border p-2 rounded mb-2" placeholder="Email" />
+      <input id="loginPass" class="w-full border p-2 rounded mb-2" placeholder="Password" type="password" />
 
-    <p class="text-right font-bold mt-2">Total: <span id="cartTotal">$0</span></p>
+      <button id="doLogin" class="bg-blue-600 text-white w-full py-2 rounded">Login</button>
+      <button id="openSignup" class="text-blue-600 mt-2 w-full">Create Account</button>
+      <button id="openReset" class="text-blue-600 mt-1 w-full">Forgot Password?</button>
+      <button id="closeLogin" class="bg-gray-600 text-white w-full py-2 rounded mt-2">Close</button>
 
-    <div class="flex justify-between mt-4">
-      <button id="clearCart" class="px-3 py-2 border rounded">Clear</button>
-      <button id="checkout" class="px-3 py-2 bg-indigo-600 text-white rounded">Checkout</button>
-      <button id="closeCart" class="px-3 py-2 border rounded">Close</button>
+      <p id="loginError" class="text-red-600 mt-2"></p>
     </div>
   </div>
-</div>
 
-<!-- ================= LOGIN / SIGNUP MODAL ================= -->
-<div id="loginModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center">
-  <div class="bg-white p-6 rounded w-80">
-    <h2 id="authTitle" class="text-xl font-bold mb-4">Login</h2>
+  <!-- SIGNUP MODAL -->
+  <div id="signupModal" class="hidden fixed inset-0 bg-black/50 flex justify-center items-center">
+    <div class="bg-white p-4 w-80 rounded">
+      <h2 class="text-xl font-bold mb-3">Signup</h2>
 
-    <input id="authEmail" type="email" placeholder="Email" class="w-full border px-3 py-2 rounded mb-2" />
-    <input id="authPass" type="password" placeholder="Password" class="w-full border px-3 py-2 rounded mb-2" />
+      <input id="signupEmail" class="w-full border p-2 rounded mb-2" placeholder="Email" />
+      <input id="signupPass" class="w-full border p-2 rounded mb-2" placeholder="Password" type="password" />
 
-    <p id="authMsg" class="text-red-600 text-sm mb-2"></p>
-
-    <button id="submitAuth" class="w-full bg-indigo-600 text-white py-2 rounded mb-2">Login</button>
-
-    <div class="text-center mb-2">
-      <a href="#" id="switchToSignup" class="text-blue-600 text-sm">Create an account</a>
-      <a href="#" id="switchToLogin" class="text-blue-600 text-sm hidden">Already have account?</a>
+      <button id="doSignup" class="bg-green-600 text-white w-full py-2 rounded">Create Account</button>
+      <button id="closeSignup" class="bg-gray-600 text-white w-full py-2 rounded mt-2">Close</button>
+      <p id="signupError" class="text-red-600 mt-2"></p>
     </div>
-
-    <button id="btnReset" class="text-sm text-blue-600">Forgot Password?</button>
-
-    <button id="cancelAuth" class="mt-3 w-full border py-2 rounded">Cancel</button>
   </div>
-</div>
 
-<script src="script.js"></script>
+  <!-- RESET MODAL -->
+  <div id="resetModal" class="hidden fixed inset-0 bg-black/50 flex justify-center items-center">
+    <div class="bg-white p-4 w-80 rounded">
+      <h2 class="text-xl font-bold mb-3">Reset Password</h2>
+
+      <input id="resetEmail" class="w-full border p-2 rounded mb-2" placeholder="Email" />
+      <button id="doReset" class="bg-blue-600 text-white w-full py-2 rounded">Send Reset Link</button>
+      <button id="closeReset" class="bg-gray-600 text-white w-full py-2 rounded mt-2">Close</button>
+      <p id="resetMsg" class="text-green-600 mt-2"></p>
+    </div>
+  </div>
+
 </body>
 </html>
