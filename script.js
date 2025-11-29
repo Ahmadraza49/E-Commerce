@@ -1,6 +1,6 @@
 /* =======================================================
-   FINAL script.js — Auth + Reset + Products + Cart + Orders + Designs
-   (Signup → Auto Login, No Email Verification)
+   FINAL script.js — Auth + Reset + Products + Cart + Orders 
+   (Signup → Show Login Form, No Auto Login, No Email Verify)
 ======================================================= */
 
 /* ========== Supabase Setup ========== */
@@ -25,7 +25,6 @@ function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
 
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", async () => {
-
   await checkAuth();
   await handleResetExchange();
 
@@ -278,7 +277,16 @@ function attachAuthModalHandlers() {
   const btnReset = qs("btnReset");
   const authMsg = qs("authMsg");
 
-  btnLogin?.addEventListener("click", () => show(loginModal));
+  /* OPEN LOGIN MODAL */
+  btnLogin?.addEventListener("click", () => {
+    qs("authTitle").textContent = "Login";
+    qs("authDesc").textContent = "Enter your credentials.";
+    submitAuth.textContent = "Login";
+    show(switchToSignup);
+    hide(switchToLogin);
+    show(loginModal);
+  });
+
   cancelAuth?.addEventListener("click", () => hide(loginModal));
 
   /* SWITCH TO SIGNUP */
@@ -313,27 +321,27 @@ function attachAuthModalHandlers() {
       return;
     }
 
-    /* SIGNUP → AUTO LOGIN */
-    const { error: signupErr } = await sb.auth.signUp({ email, password: pass });
+    /* SIGNUP (NO AUTO LOGIN) */
+    const { error: signupErr } = await sb.auth.signUp({
+      email,
+      password: pass,
+      options: { emailRedirectTo: null }
+    });
 
     if (signupErr) {
       authMsg.textContent = signupErr.message;
       return;
     }
 
-    // Auto login after signup (NO EMAIL VERIFICATION)
-    const { error: loginErr } = await sb.auth.signInWithPassword({
-      email,
-      password: pass
-    });
+    /* SHOW LOGIN FORM AFTER SIGNUP */
+    authMsg.textContent = "Signup successful! Please login now.";
 
-    if (loginErr) {
-      authMsg.textContent = loginErr.message;
-      return;
-    }
+    qs("authTitle").textContent = "Login";
+    qs("authDesc").textContent = "Enter your email & password.";
+    submitAuth.textContent = "Login";
 
-    authMsg.textContent = "Signup successful!";
-    location.reload();
+    show(switchToSignup);
+    hide(switchToLogin);
   });
 
   /* RESET PASSWORD */
