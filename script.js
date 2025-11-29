@@ -124,7 +124,7 @@ async function handleResetExchange() {
 
 /* ================= AUTH MODAL ================= */
 function attachAuthModalHandlers() {
-  // (unchanged — same as your last version)
+  // (unchanged)
 }
 
 /* ================= PRODUCTS ================= */
@@ -161,7 +161,7 @@ function renderProducts() {
 }
 
 /* ============================================================
-   PRODUCT PAGE — FIXED DESIGN IMAGES LOADER
+   PRODUCT PAGE — FINAL FIXED DESIGN IMAGES LOADER
 ============================================================ */
 async function setupProductPage() {
   if (!qs("addToCart")) return;
@@ -184,26 +184,31 @@ async function setupProductPage() {
   const mainImg = qs("mainProductImage");
   const gallery = qs("productImages");
 
-  // FIXED — support design_images array from JSONB
-  let designImages = [];
-  if (Array.isArray(product.design_images)) {
-    designImages = product.design_images;
-  }
+  /* ===============================
+     FIXED — Combine ALL images
+     main_image + design_images []
+  =============================== */
+  let allImages = [];
 
-  // Add main image at start (always)
   if (product.image_url) {
-    designImages.unshift(product.image_url);
+    allImages.push(product.image_url);
   }
 
-  // Avoid duplicates
-  designImages = [...new Set(designImages)];
+  if (Array.isArray(product.design_images)) {
+    allImages = allImages.concat(product.design_images);
+  }
+
+  // Remove duplicates
+  allImages = [...new Set(allImages)];
 
   // Set main image
-  mainImg.src = designImages.length ? designImages[0] : "";
+  if (allImages.length) {
+    mainImg.src = allImages[0];
+  }
 
   // Render thumbnails
   gallery.innerHTML = "";
-  designImages.forEach(url => {
+  allImages.forEach(url => {
     const img = document.createElement("img");
     img.src = url;
     img.className =
