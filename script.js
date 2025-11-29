@@ -1,230 +1,234 @@
-/* =======================================================
-   FINAL FIXED script.js — 100% WORKING
-======================================================= */
-
-/* ========== Supabase Setup ========== */
+/* ============================
+   Supabase Setup
+============================ */
 const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* ============================
+   Global Cart
+============================ */
+let cart = [];
 
-/* ========== Helpers ========== */
-function qs(id) { return document.getElementById(id); }
-function show(el) { if (el) el.classList.remove("hidden"); }
-function hide(el) { if (el) el.classList.add("hidden"); }
-function toast(t) { alert(t); }
-
-let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
-
-/* ========== INIT ========== */
-document.addEventListener("DOMContentLoaded", async () => {
-
-  checkAuth();         // No await → No page freeze
-  loadProducts();
-  setupProductPage();
-  setupCartModal();
-  attachAuthModalHandlers();
-
-});
-
-/* =======================================================
-   AUTH CHECK
-======================================================= */
-async function checkAuth() {
-  const { data } = await sb.auth.getUser();
-  const user = data?.user;
-
-  const btnLogin = qs("btnLogin");
-  const btnLogout = qs("btnLogout");
-  const userEmail = qs("userEmail");
-  const userArea = qs("userArea");
-
-  if (user) {
-    if (btnLogin) btnLogin.style.display = "none";
-    if (btnLogout) btnLogout.style.display = "inline-block";
-    if (userEmail) userEmail.textContent = user.email;
-    if (userArea) userArea.style.display = "flex";
-
-    btnLogout.onclick = async () => {
-      await sb.auth.signOut();
-      location.reload();
-    };
-
-  } else {
-    if (btnLogin) btnLogin.style.display = "inline-block";
-    if (btnLogout) btnLogout.style.display = "none";
-    if (userArea) userArea.style.display = "none";
-  }
-}
-
-/* =======================================================
-   AUTH MODAL (LOGIN + SIGNUP)
-======================================================= */
-function attachAuthModalHandlers() {
-  const loginModal = qs("loginModal");
-  if (!loginModal) return;
-
-  qs("btnLogin")?.addEventListener("click", () => openAuthModal("login"));
-  qs("btnSignup")?.addEventListener("click", () => openAuthModal("signup"));
-
-  qs("cancelAuth")?.addEventListener("click", () => hide(loginModal));
-
-  qs("switchToSignup")?.addEventListener("click", e => {
-    e.preventDefault(); openAuthModal("signup");
-  });
-
-  qs("switchToLogin")?.addEventListener("click", e => {
-    e.preventDefault(); openAuthModal("login");
-  });
-
-  qs("submitAuth")?.onclick = doAuth;
-  qs("btnReset")?.onclick = sendResetEmail;
-}
-
-function openAuthModal(mode) {
-  const modal = qs("loginModal");
-  if (!modal) return;
-
-  modal.dataset.mode = mode;
-  qs("authTitle").textContent = mode === "login" ? "Login" : "Sign Up";
-  qs("submitAuth").textContent = mode === "login" ? "Login" : "Sign Up";
-
-  qs("switchToSignup").style.display = mode === "login" ? "" : "none";
-  qs("switchToLogin").style.display = mode === "signup" ? "" : "none";
-
-  qs("authMsg").textContent = "";
-  show(modal);
-}
-
-async function doAuth() {
-  const mode = qs("loginModal").dataset.mode;
-  const email = qs("authEmail").value.trim();
-  const pass = qs("authPass").value.trim();
-  const msg = qs("authMsg");
-
-  if (!email || !pass) return msg.textContent = "Enter email & password";
-
-  if (mode === "login") {
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (error) return msg.textContent = error.message;
-    location.reload();
-  } else {
-    const { error } = await sb.auth.signUp({ email, password: pass });
-    if (error) return msg.textContent = error.message;
-    msg.style.color = "green";
-    msg.textContent = "Signup successful!";
-    setTimeout(() => location.reload(), 800);
-  }
-}
-
-/* RESET EMAIL */
-async function sendResetEmail() {
-  const email = qs("authEmail").value.trim();
-  const msg = qs("authMsg");
-
-  if (!email) return msg.textContent = "Enter email first";
-
-  const redirectTo = window.location.origin + "/reset_password.html";
-
-  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
-  if (error) msg.textContent = error.message;
-  else {
-    msg.style.color = "green";
-    msg.textContent = "Reset email sent!";
-  }
-}
-
-/* =======================================================
-   PRODUCTS PAGE
-======================================================= */
+/* ============================
+   Load Products (Index Page)
+============================ */
 async function loadProducts() {
-  const grid = qs("productsGrid");
-  if (!grid) return;
+  if (!document.getElementById("products")) return;
 
-  const { data } = await sb.from("products").select("*");
-  if (!data) return;
+  let { data, error } = await supabase.from("products").select("*");
+  if (error) {
+    document.getElementById("products").innerHTML =
+      "<p class='text-red-600'>Failed to load products.</p>";
+    return;
+  }
 
-  grid.innerHTML = data
-    .map(p => `
-      <div class="p-4 bg-white rounded shadow">
-        <img src="${p.image_url}" class="w-full h-48 object-contain">
-        <h3 class="font-semibold mt-2">${p.title}</h3>
-        <p class="text-gray-500">${p.description}</p>
-        <p class="text-xl font-bold mt-1">$${p.price}</p>
-        <a href="product.html?id=${p.id}" class="mt-2 block bg-indigo-600 text-white text-center p-2 rounded">View</a>
-      </div>
-    `)
+  document.getElementById("products").innerHTML = data
+    .map(
+      (p) => `
+    <div class="bg-white p-3 shadow rounded">
+      <img src="${p.image}" class="w-full h-32 object-cover rounded" />
+
+      <h3 class="font-bold mt-2">${p.name}</h3>
+      <p class="font-bold text-green-700">$${p.price}</p>
+
+      <a href="product.html?id=${p.id}" class="bg-blue-600 text-white px-3 py-1 rounded block mt-2 text-center">View</a>
+    </div>`
+    )
     .join("");
 }
 
-/* =======================================================
-   PRODUCT PAGE
-======================================================= */
-async function setupProductPage() {
-  if (!qs("addToCart")) return;
+/* ============================
+   Load Single Product Page
+============================ */
+async function loadProductPage() {
+  if (!document.getElementById("productDetails")) return;
 
-  const id = Number(new URLSearchParams(location.search).get("id"));
-  if (!id) return;
+  const id = new URLSearchParams(location.search).get("id");
 
-  const { data: p } = await sb.from("products").select("*").eq("id", id).maybeSingle();
-  if (!p) return;
+  let { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
 
-  qs("productTitle").textContent = p.title;
-  qs("productDesc").textContent = p.description;
-  qs("productPrice").textContent = "$" + p.price;
-  qs("productImage").src = p.image_url;
+  if (!data) {
+    document.getElementById("productDetails").innerHTML =
+      "<p class='text-red-600'>Product not found.</p>";
+    return;
+  }
 
-  qs("addToCart").onclick = () => {
-    const qty = Number(qs("quantity").value) || 1;
-    const existing = cart.find(i => i.id === id);
+  document.getElementById("productDetails").innerHTML = `
+      <img src="${data.image}" class="w-full h-60 object-cover rounded" />
 
-    if (existing) existing.qty += qty;
-    else cart.push({ id, title: p.title, price: p.price, qty });
+      <h2 class="text-2xl font-bold mt-3">${data.name}</h2>
+      <p class="text-xl font-bold text-green-700">$${data.price}</p>
 
-    saveCart();
-    toast("Added to cart");
-  };
+      <p class="mt-3">${data.description || ""}</p>
+
+      <button onclick="addToCart(${data.id}, '${data.name}', ${data.price})"
+        class="bg-black text-white px-4 py-2 rounded mt-4 w-full">
+        Add to Cart
+      </button>
+  `;
 }
 
-/* =======================================================
-   CART
-======================================================= */
-function setupCartModal() {
-  qs("btnCart")?.onclick = () => show(qs("cartModal"));
-  qs("closeCart")?.onclick = () => hide(qs("cartModal"));
+/* ============================
+   Cart
+============================ */
+function addToCart(id, name, price) {
+  cart.push({ id, name, price });
 
-  updateCartUI();
+  alert("Added to cart!");
 }
 
-function updateCartUI() {
-  const list = qs("cartItems");
-  const totalTxt = qs("cartTotal");
+/* ============================
+   Show Cart
+============================ */
+function showCart() {
+  document.getElementById("cartModal").classList.remove("hidden");
 
-  if (!list || !totalTxt) return;
-
-  list.innerHTML = "";
+  let html = "";
   let total = 0;
 
-  cart.forEach((c, i) => {
-    total += c.price * c.qty;
-
-    list.innerHTML += `
-      <div class="flex justify-between border-b py-2">
-        <p>${c.title} <br> $${c.price} × ${c.qty}</p>
-        <button data-i="${i}" class="remove">Remove</button>
-      </div>
-    `;
+  cart.forEach((item) => {
+    html += `<p>${item.name} — $${item.price}</p>`;
+    total += item.price;
   });
 
-  totalTxt.textContent = "$" + total;
-
-  list.querySelectorAll(".remove").forEach(btn => {
-    btn.onclick = () => {
-      cart.splice(btn.dataset.i, 1);
-      saveCart();
-      updateCartUI();
-    };
-  });
+  document.getElementById("cartItems").innerHTML = html;
+  document.getElementById("cartTotal").innerText = "Total: $" + total;
 }
+
+/* ============================
+   Checkout
+============================ */
+async function checkout() {
+  const user = (await supabase.auth.getUser()).data.user;
+
+  if (!user) {
+    alert("Please login first!");
+    return;
+  }
+
+  let total = cart.reduce((t, i) => t + i.price, 0);
+
+  await supabase.from("orders").insert([
+    {
+      user_id: user.id,
+      items: cart,
+      total: total,
+      status: "Pending",
+    },
+  ]);
+
+  cart = [];
+  alert("Order placed!");
+  document.getElementById("cartModal").classList.add("hidden");
+}
+
+/* ============================
+   AUTH — Login / Signup / Reset
+============================ */
+async function startAuth() {
+  // Buttons
+  const loginBtn = document.getElementById("loginBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const ordersPageBtn = document.getElementById("ordersPageBtn");
+
+  const loginModal = document.getElementById("loginModal");
+  const signupModal = document.getElementById("signupModal");
+  const resetModal = document.getElementById("resetModal");
+
+  // Check Session
+  supabase.auth.getUser().then(({ data: { user } }) => {
+    if (user) {
+      loginBtn.classList.add("hidden");
+      logoutBtn.classList.remove("hidden");
+      ordersPageBtn.classList.remove("hidden");
+    }
+  });
+
+  // Login open
+  loginBtn.onclick = () => loginModal.classList.remove("hidden");
+
+  // Login
+  document.getElementById("doLogin").onclick = async () => {
+    let email = document.getElementById("loginEmail").value;
+    let pass = document.getElementById("loginPass").value;
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
+
+    if (error) {
+      document.getElementById("loginError").innerText = error.message;
+    } else {
+      location.reload();
+    }
+  };
+
+  // Logout
+  logoutBtn.onclick = async () => {
+    await supabase.auth.signOut();
+    location.reload();
+  };
+
+  // Signup open
+  document.getElementById("openSignup").onclick = () => {
+    loginModal.classList.add("hidden");
+    signupModal.classList.remove("hidden");
+  };
+
+  // Signup
+  document.getElementById("doSignup").onclick = async () => {
+    let email = document.getElementById("signupEmail").value;
+    let pass = document.getElementById("signupPass").value;
+
+    let { error } = await supabase.auth.signUp({ email, password: pass });
+
+    if (error) {
+      document.getElementById("signupError").innerText = error.message;
+    } else {
+      alert("Account created! Please login.");
+      signupModal.classList.add("hidden");
+    }
+  };
+
+  // Reset
+  document.getElementById("openReset").onclick = () => {
+    loginModal.classList.add("hidden");
+    resetModal.classList.remove("hidden");
+  };
+
+  document.getElementById("doReset").onclick = async () => {
+    let email = document.getElementById("resetEmail").value;
+
+    await supabase.auth.resetPasswordForEmail(email);
+
+    document.getElementById("resetMsg").innerText =
+      "Reset link sent to your email!";
+  };
+
+  // Close buttons
+  document.getElementById("closeLogin").onclick = () =>
+    loginModal.classList.add("hidden");
+  document.getElementById("closeSignup").onclick = () =>
+    signupModal.classList.add("hidden");
+  document.getElementById("closeReset").onclick = () =>
+    resetModal.classList.add("hidden");
+
+  // Cart
+  document.getElementById("cartOpenBtn").onclick = showCart;
+  document.getElementById("closeCart").onclick = () =>
+    document.getElementById("cartModal").classList.add("hidden");
+  document.getElementById("checkoutBtn").onclick = checkout;
+}
+
+/* ============================
+   INIT
+============================ */
+loadProducts();
+loadProductPage();
+startAuth();
