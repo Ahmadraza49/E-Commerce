@@ -1,5 +1,6 @@
 /* =======================================================
    FINAL script.js — Auth + Reset + Products + Cart + Orders + Designs
+   (Signup → Auto Login, No Email Verification)
 ======================================================= */
 
 /* ========== Supabase Setup ========== */
@@ -17,46 +18,48 @@ const itemsPerPage = 6;
 
 /* ========== Helpers ========== */
 function qs(id) { return document.getElementById(id); }
-function show(el) { el?.classList.remove("hidden"); }
-function hide(el) { el?.classList.add("hidden"); }
+function show(el) { if (el) el.classList.remove("hidden"); }
+function hide(el) { if (el) el.classList.add("hidden"); }
 function toast(msg) { alert(msg); }
 function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
 
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", async () => {
+
   await checkAuth();
   await handleResetExchange();
+
   if (qs("productsGrid")) await loadProducts();
   updateCartUI();
   await setupProductPage();
-  setupCartModal();
   attachAuthModalHandlers();
+  setupCartModal();
   attachPaginationHandlers();
 });
 
-/* =======================================================
-   CART MODAL
-======================================================= */
+/* ================= CART MODAL SETUP ================= */
 function setupCartModal() {
   const btnCart = qs("btnCart");
   const cartModal = qs("cartModal");
+  const closeCart = qs("closeCart");
+  const clearCartBtn = qs("clearCart");
+  const checkoutBtn = qs("checkout");
 
   if (!btnCart || !cartModal) return;
 
   btnCart.addEventListener("click", () => show(cartModal));
-  qs("closeCart")?.addEventListener("click", () => hide(cartModal));
+  closeCart.addEventListener("click", () => hide(cartModal));
 
-  qs("clearCart")?.addEventListener("click", () => {
+  clearCartBtn?.addEventListener("click", () => {
     cart = [];
     saveCart();
     updateCartUI();
   });
 
-  qs("checkout")?.addEventListener("click", async () => {
-    const user = (await sb.auth.getUser())?.data?.user;
-
-    if (!user) return toast("Please login first!");
-    if (!cart.length) return toast("Cart is empty!");
+  checkoutBtn?.addEventListener("click", async () => {
+    const user = (await sb.auth.getUser()).data?.user;
+    if (!user) return toast("Please login first");
+    if (!cart.length) return toast("Cart is empty");
 
     const order = {
       user_id: user.id,
@@ -70,7 +73,6 @@ function setupCartModal() {
     if (error) return toast("Order error: " + error.message);
 
     toast("Order placed!");
-
     cart = [];
     saveCart();
     updateCartUI();
@@ -80,11 +82,10 @@ function setupCartModal() {
   });
 }
 
-/* =======================================================
-   AUTH CHECK
-======================================================= */
+/* ================= AUTH CHECK ================= */
 async function checkAuth() {
-  const user = (await sb.auth.getUser())?.data?.user;
+  const { data } = await sb.auth.getUser();
+  const user = data?.user;
 
   const userArea = qs("userArea");
   const btnLogin = qs("btnLogin");
@@ -97,7 +98,7 @@ async function checkAuth() {
     show(btnLogout);
     show(myOrdersBtn);
 
-    btnLogout.addEventListener("click", async () => {
+    btnLogout?.addEventListener("click", async () => {
       await sb.auth.signOut();
       location.reload();
     });
@@ -109,17 +110,13 @@ async function checkAuth() {
   }
 }
 
-/* =======================================================
-   PASSWORD RESET URL EXCHANGE
-======================================================= */
+/* ================= RESET PASSWORD EXCHANGE ================= */
 async function handleResetExchange() {
   const code = new URLSearchParams(window.location.search).get("code");
   if (code) await sb.auth.exchangeCodeForSession(code);
 }
 
-/* =======================================================
-   PRODUCTS LIST + SEARCH + PAGINATION
-======================================================= */
+/* ================= PRODUCTS ================= */
 async function loadProducts() {
   const { data } = await sb.from("products").select("*");
   products = data || [];
@@ -130,19 +127,18 @@ function renderProducts() {
   const grid = qs("productsGrid");
   if (!grid) return;
 
-  const searchText = (qs("search")?.value || "").toLowerCase();
-
+  const search = (qs("search")?.value || "").toLowerCase();
   const filtered = products.filter(p =>
-    (p.title || "").toLowerCase().includes(searchText)
+    (p.title || "").toLowerCase().includes(search)
   );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   if (currentPage > totalPages) currentPage = totalPages;
 
   const start = (currentPage - 1) * itemsPerPage;
-  const items = filtered.slice(start, start + itemsPerPage);
+  const pageItems = filtered.slice(start, start + itemsPerPage);
 
-  grid.innerHTML = items.map(p => `
+  grid.innerHTML = pageItems.map(p => `
     <div class="bg-white p-4 rounded shadow flex flex-col">
       <img src="${p.image_url}" class="h-48 w-full object-contain mb-2" />
       <h3 class="font-semibold">${p.title}</h3>
@@ -155,6 +151,7 @@ function renderProducts() {
   qs("pageInfo").textContent = `Page ${currentPage} of ${totalPages}`;
 }
 
+/* ================= PAGINATION ================= */
 function attachPaginationHandlers() {
   qs("prevPage")?.addEventListener("click", () => {
     if (currentPage > 1) { currentPage--; renderProducts(); }
@@ -168,20 +165,17 @@ function attachPaginationHandlers() {
   });
 }
 
-/* =======================================================
-   PRODUCT PAGE
-======================================================= */
+/* ================= PRODUCT PAGE ================= */
 async function setupProductPage() {
   if (!qs("addToCart")) return;
 
-  const id = Number(new URLSearchParams(location.search).get("id"));
+  const id = Number(new URLSearchParams(window.location.search).get("id"));
   if (!id) return;
 
   const { data: product } = await sb.from("products")
     .select("*")
     .eq("id", id)
     .single();
-
   if (!product) return;
 
   qs("productTitle").textContent = product.title;
@@ -191,71 +185,66 @@ async function setupProductPage() {
   const mainImg = qs("mainProductImage");
   const gallery = qs("productImages");
 
-  let images = [];
+  let allImages = [];
+  let designImgs = [];
 
   try {
-    let designImgs = typeof product.design_images === "string"
+    designImgs = typeof product.design_images === "string"
       ? JSON.parse(product.design_images)
       : product.design_images || [];
+  } catch { designImgs = []; }
 
-    if (product.image_url) images.push(product.image_url);
-    if (Array.isArray(designImgs)) images.push(...designImgs);
-  } catch {}
+  if (product.image_url) allImages.push(product.image_url);
+  if (Array.isArray(designImgs)) allImages.push(...designImgs);
 
-  images = [...new Set(images)];
-
-  if (images.length) mainImg.src = images[0];
+  allImages = [...new Set(allImages)];
+  if (allImages.length) mainImg.src = allImages[0];
 
   gallery.innerHTML = "";
-  images.forEach(url => {
+  allImages.forEach(url => {
     const img = document.createElement("img");
     img.src = url;
-    img.className = "w-20 h-20 rounded object-cover cursor-pointer border";
-    img.onclick = () => (mainImg.src = url);
+    img.className = "w-20 h-20 object-cover rounded cursor-pointer border hover:opacity-70";
+    img.onclick = () => { mainImg.src = url; };
     gallery.appendChild(img);
   });
 
   qs("addToCart").addEventListener("click", () => {
     const qty = Number(qs("quantity").value) || 1;
     const existing = cart.find(i => i.id === id);
-
     if (existing) existing.qty += qty;
     else cart.push({ id, title: product.title, price: product.price, qty });
-
     saveCart();
     updateCartUI();
-    toast("Added to cart!");
+    toast("Added to cart");
   });
 }
 
-/* =======================================================
-   CART UI
-======================================================= */
+/* ================= CART UI ================= */
 function updateCartUI() {
   const cartItems = qs("cartItems");
   const cartCount = qs("cartCount");
   const cartTotal = qs("cartTotal");
 
   if (cartCount) cartCount.textContent = cart.length;
-
   if (!cartItems || !cartTotal) return;
 
   cartItems.innerHTML = "";
   let total = 0;
 
-  cart.forEach((item, i) => {
+  cart.forEach((item, index) => {
     total += item.price * item.qty;
 
     cartItems.innerHTML += `
-      <div class="flex justify-between pb-2 border-b mt-2">
+      <div class="flex justify-between border-b pb-2 mt-2">
         <div>
           <p class="font-semibold">${item.title}</p>
           <p>$${item.price} × ${item.qty}</p>
         </div>
         <div class="flex gap-2">
-          <button class="dec" data-i="${i}">-</button>
-          <button class="inc" data-i="${i}">+</button>
-          <button class="remove" data-i="${i}">Remove</button>
+          <button class="decrease" data-i="${index}">-</button>
+          <button class="increase" data-i="${index}">+</button>
+          <button class="remove" data-i="${index}">Remove</button>
         </div>
       </div>
     `;
@@ -263,89 +252,99 @@ function updateCartUI() {
 
   cartTotal.textContent = "$" + total;
 
-  cartItems.querySelectorAll(".remove").forEach(btn => {
-    btn.onclick = () => {
-      cart.splice(btn.dataset.i, 1);
-      saveCart();
-      updateCartUI();
-    };
+  cartItems.querySelectorAll(".remove").forEach(b => {
+    b.onclick = () => { cart.splice(b.dataset.i, 1); saveCart(); updateCartUI(); };
   });
-
-  cartItems.querySelectorAll(".inc").forEach(btn => {
-    btn.onclick = () => {
-      cart[btn.dataset.i].qty++;
-      saveCart();
-      updateCartUI();
-    };
+  cartItems.querySelectorAll(".increase").forEach(b => {
+    b.onclick = () => { cart[b.dataset.i].qty++; saveCart(); updateCartUI(); };
   });
-
-  cartItems.querySelectorAll(".dec").forEach(btn => {
-    btn.onclick = () => {
-      if (cart[btn.dataset.i].qty > 1) cart[btn.dataset.i].qty--;
-      saveCart();
-      updateCartUI();
+  cartItems.querySelectorAll(".decrease").forEach(b => {
+    b.onclick = () => { 
+      if(cart[b.dataset.i].qty > 1) cart[b.dataset.i].qty--;
+      saveCart(); 
+      updateCartUI(); 
     };
   });
 }
 
-/* =======================================================
-   AUTH MODAL (LOGIN + SIGNUP + RESET)
-======================================================= */
+/* ================= AUTH MODAL ================= */
 function attachAuthModalHandlers() {
-  const modal = qs("loginModal");
+  const loginModal = qs("loginModal");
   const btnLogin = qs("btnLogin");
+  const cancelAuth = qs("cancelAuth");
+  const submitAuth = qs("submitAuth");
+  const switchToSignup = qs("switchToSignup");
+  const switchToLogin = qs("switchToLogin");
   const btnReset = qs("btnReset");
+  const authMsg = qs("authMsg");
 
-  btnLogin?.addEventListener("click", () => show(modal));
-  qs("cancelAuth")?.addEventListener("click", () => hide(modal));
+  btnLogin?.addEventListener("click", () => show(loginModal));
+  cancelAuth?.addEventListener("click", () => hide(loginModal));
 
-  qs("switchToSignup")?.addEventListener("click", () => {
+  /* SWITCH TO SIGNUP */
+  switchToSignup?.addEventListener("click", () => {
     qs("authTitle").textContent = "Signup";
-    qs("authDesc").textContent = "Create a new account.";
-    qs("submitAuth").textContent = "Signup";
-    show(qs("switchToLogin"));
-    hide(qs("switchToSignup"));
+    qs("authDesc").textContent = "Create your account.";
+    submitAuth.textContent = "Signup";
+    hide(switchToSignup);
+    show(switchToLogin);
   });
 
-  qs("switchToLogin")?.addEventListener("click", () => {
+  /* SWITCH TO LOGIN */
+  switchToLogin?.addEventListener("click", () => {
     qs("authTitle").textContent = "Login";
     qs("authDesc").textContent = "Enter your credentials.";
-    qs("submitAuth").textContent = "Login";
-    hide(qs("switchToLogin"));
-    show(qs("switchToSignup"));
+    submitAuth.textContent = "Login";
+    hide(switchToLogin);
+    show(switchToSignup);
   });
 
-  qs("submitAuth")?.addEventListener("click", async () => {
+  /* SUBMIT LOGIN / SIGNUP */
+  submitAuth?.addEventListener("click", async () => {
     const email = qs("authEmail").value.trim();
     const pass = qs("authPass").value.trim();
+    authMsg.textContent = "Processing...";
 
-    if (!email || !pass) return toast("Enter all fields!");
-
-    const btn = qs("submitAuth");
-    btn.disabled = true;
-
-    if (btn.textContent === "Login") {
+    /* LOGIN */
+    if (submitAuth.textContent === "Login") {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-      btn.disabled = false;
-      if (error) return toast(error.message);
-      location.reload();
-    } else {
-      const { error } = await sb.auth.signUp({ email, password: pass });
-      btn.disabled = false;
-      if (error) return toast(error.message);
-      toast("Signup successful! Check your email for verification.");
+      authMsg.textContent = error ? error.message : "";
+      if (!error) location.reload();
+      return;
     }
+
+    /* SIGNUP → AUTO LOGIN */
+    const { error: signupErr } = await sb.auth.signUp({ email, password: pass });
+
+    if (signupErr) {
+      authMsg.textContent = signupErr.message;
+      return;
+    }
+
+    // Auto login after signup (NO EMAIL VERIFICATION)
+    const { error: loginErr } = await sb.auth.signInWithPassword({
+      email,
+      password: pass
+    });
+
+    if (loginErr) {
+      authMsg.textContent = loginErr.message;
+      return;
+    }
+
+    authMsg.textContent = "Signup successful!";
+    location.reload();
   });
 
+  /* RESET PASSWORD */
   btnReset?.addEventListener("click", async () => {
     const email = qs("authEmail").value.trim();
-    if (!email) return toast("Enter email first!");
+    if (!email) return alert("Enter your email first!");
 
     const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + "/reset.html"
     });
 
-    if (error) return toast(error.message);
-    toast("Password reset email sent!");
+    alert(error ? error.message : "Reset email sent!");
   });
 }
