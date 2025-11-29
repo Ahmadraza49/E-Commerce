@@ -31,36 +31,28 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (qs("productsGrid")) await loadProducts();
   updateCartUI();
   await setupProductPage();
-
   attachAuthModalHandlers();
+  setupCartModal();
+});
 
-  qs("btnCart")?.addEventListener("click", () => show(qs("cartModal")));
-  qs("closeCart")?.addEventListener("click", () => hide(qs("cartModal")));
+/* ================= CART MODAL SETUP ================= */
+function setupCartModal() {
+  const btnCart = qs("btnCart");
+  const cartModal = qs("cartModal");
+  const closeCart = qs("closeCart");
+  const clearCartBtn = qs("clearCart");
+  const checkoutBtn = qs("checkout");
 
-  qs("clearCart")?.addEventListener("click", () => {
+  btnCart?.addEventListener("click", () => show(cartModal));
+  closeCart?.addEventListener("click", () => hide(cartModal));
+
+  clearCartBtn?.addEventListener("click", () => {
     cart = [];
     saveCart();
     updateCartUI();
   });
 
-  qs("search")?.addEventListener("input", () => {
-    currentPage = 1;
-    renderProducts();
-  });
-
-  qs("prevPage")?.addEventListener("click", () => {
-    if (currentPage > 1) {
-      currentPage--;
-      renderProducts();
-    }
-  });
-
-  qs("nextPage")?.addEventListener("click", () => {
-    currentPage++;
-    renderProducts();
-  });
-
-  qs("checkout")?.addEventListener("click", async () => {
+  checkoutBtn?.addEventListener("click", async () => {
     const user = (await sb.auth.getUser()).data?.user;
     if (!user) return toast("Please login first");
     if (!cart.length) return toast("Cart is empty");
@@ -80,9 +72,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     cart = [];
     saveCart();
     updateCartUI();
-    hide(qs("cartModal"));
+    hide(cartModal);
   });
-});
+}
 
 /* ================= AUTH ================= */
 async function checkAuth() {
@@ -155,7 +147,7 @@ function renderProducts() {
 }
 
 /* ============================================================
-   PRODUCT PAGE — FINAL IMAGE FIX (WORKING)
+   PRODUCT PAGE — FINAL IMAGE + DESIGNS FIX
 ============================================================ */
 async function setupProductPage() {
   if (!qs("addToCart")) return;
@@ -202,9 +194,7 @@ async function setupProductPage() {
     img.className =
       "w-20 h-20 object-cover rounded cursor-pointer border hover:opacity-70";
 
-    img.onclick = () => {
-      mainImg.src = url;
-    };
+    img.onclick = () => { mainImg.src = url; };
 
     gallery.appendChild(img);
   });
