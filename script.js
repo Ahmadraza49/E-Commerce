@@ -119,9 +119,6 @@ async function handleResetExchange() {
   if (code) await sb.auth.exchangeCodeForSession(code);
 }
 
-/* ================= AUTH MODAL ================= */
-function attachAuthModalHandlers() {}
-
 /* ================= PRODUCTS ================= */
 async function loadProducts() {
   const { data } = await sb.from("products").select("*");
@@ -134,7 +131,10 @@ function renderProducts() {
   if (!grid) return;
 
   const search = (qs("search")?.value || "").toLowerCase();
-  const filtered = products.filter(p => (p.title || "").toLowerCase().includes(search));
+  const filtered = products.filter(p => (p.title || "")
+    .toLowerCase()
+    .includes(search)
+  );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   if (currentPage > totalPages) currentPage = totalPages;
@@ -156,7 +156,7 @@ function renderProducts() {
 }
 
 /* ============================================================
-   PRODUCT PAGE — FIXED DESIGN IMAGES (WORKING 100%)
+   PRODUCT PAGE — FINAL IMAGE FIX (WORKING)
 ============================================================ */
 async function setupProductPage() {
   if (!qs("addToCart")) return;
@@ -180,23 +180,18 @@ async function setupProductPage() {
 
   let allImages = [];
 
-  // MAIN IMAGE
-  if (product.image_url) allImages.push(product.image_url);
-
-  // 🔥 FIX — design_images ko JSON array banana
-  let designImages = [];
-
-  if (typeof product.design_images === "string") {
-    try {
-      designImages = JSON.parse(product.design_images);
-    } catch {
-      designImages = [];
-    }
-  } else if (Array.isArray(product.design_images)) {
-    designImages = product.design_images;
+  /** FIX — Force JSON parse */
+  let designImgs = [];
+  try {
+    designImgs = typeof product.design_images === "string"
+      ? JSON.parse(product.design_images)
+      : product.design_images || [];
+  } catch {
+    designImgs = [];
   }
 
-  allImages = allImages.concat(designImages);
+  if (product.image_url) allImages.push(product.image_url);
+  if (Array.isArray(designImgs)) allImages.push(...designImgs);
 
   allImages = [...new Set(allImages)];
 
@@ -209,7 +204,9 @@ async function setupProductPage() {
     img.className =
       "w-20 h-20 object-cover rounded cursor-pointer border hover:opacity-70";
 
-    img.onclick = () => { mainImg.src = url; };
+    img.onclick = () => {
+      mainImg.src = url;
+    };
 
     gallery.appendChild(img);
   });
