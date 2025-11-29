@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (qs("productsGrid")) await loadProducts();
   updateCartUI();
-  await setupProductPage();  // <-- FIXED product page loader
+  await setupProductPage();  // Product page loader
 
   attachAuthModalHandlers();
 
@@ -124,7 +124,7 @@ async function handleResetExchange() {
 
 /* ================= AUTH MODAL ================= */
 function attachAuthModalHandlers() {
-  // (unchanged)
+  // unchanged
 }
 
 /* ================= PRODUCTS ================= */
@@ -161,7 +161,7 @@ function renderProducts() {
 }
 
 /* ============================================================
-   PRODUCT PAGE — FINAL FIXED DESIGN IMAGES LOADER
+   PRODUCT PAGE — FINAL FIXED DESIGN IMAGES FROM FULL URL
 ============================================================ */
 async function setupProductPage() {
   if (!qs("addToCart")) return;
@@ -184,10 +184,7 @@ async function setupProductPage() {
   const mainImg = qs("mainProductImage");
   const gallery = qs("productImages");
 
-  /* ===============================
-     FIXED — Combine ALL images
-     main_image + design_images []
-  =============================== */
+  /* ========== FIX: Direct FULL URL Support ========== */
   let allImages = [];
 
   if (product.image_url) {
@@ -198,15 +195,12 @@ async function setupProductPage() {
     allImages = allImages.concat(product.design_images);
   }
 
-  // Remove duplicates
   allImages = [...new Set(allImages)];
 
-  // Set main image
   if (allImages.length) {
     mainImg.src = allImages[0];
   }
 
-  // Render thumbnails
   gallery.innerHTML = "";
   allImages.forEach(url => {
     const img = document.createElement("img");
