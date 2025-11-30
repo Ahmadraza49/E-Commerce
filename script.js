@@ -1,5 +1,7 @@
+
 /* =======================================================
-   FINAL script.js — Auth + Reset + Products + Cart + Orders + Categories
+   FINAL script.js — Auth + Reset + Products + Cart + Orders 
+   (Signup → Show Login Form, No Auto Login, No Email Verify)
 ======================================================= */
 
 /* ========== Supabase Setup ========== */
@@ -14,7 +16,6 @@ let products = [];
 let cart = JSON.parse(localStorage.getItem("cart") || "[]");
 let currentPage = 1;
 const itemsPerPage = 6;
-let currentCategory = null;
 
 /* ========== Helpers ========== */
 function qs(id) { return document.getElementById(id); }
@@ -28,8 +29,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await checkAuth();
   await handleResetExchange();
 
-  setupCategoryDropdown();
-
   if (qs("productsGrid")) await loadProducts();
   updateCartUI();
   await setupProductPage();
@@ -37,27 +36,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupCartModal();
   attachPaginationHandlers();
 });
-
-/* ================= CATEGORY DROPDOWN ================= */
-function setupCategoryDropdown() {
-  const categories = ["Men", "Women", "Kids", "New Designs"];
-  const container = document.querySelector("#categoriesDropdown");
-  if (!container) return;
-
-  container.innerHTML = categories.map(cat => `
-    <button class="block w-full text-left px-4 py-2 hover:bg-gray-200" data-cat="${cat}">
-      ${cat}
-    </button>
-  `).join("");
-
-  container.querySelectorAll("button").forEach(btn => {
-    btn.onclick = () => {
-      currentCategory = btn.dataset.cat;
-      currentPage = 1;
-      window.location.href = "products.html?category=" + encodeURIComponent(currentCategory);
-    };
-  });
-}
 
 /* ================= CART MODAL SETUP ================= */
 function setupCartModal() {
@@ -140,12 +118,8 @@ async function handleResetExchange() {
 
 /* ================= PRODUCTS ================= */
 async function loadProducts() {
-  const params = new URLSearchParams(window.location.search);
-  currentCategory = params.get("category") || null;
-
   const { data } = await sb.from("products").select("*");
   products = data || [];
-
   renderProducts();
 }
 
@@ -154,13 +128,9 @@ function renderProducts() {
   if (!grid) return;
 
   const search = (qs("search")?.value || "").toLowerCase();
-  let filtered = products;
-
-  if (currentCategory) {
-    filtered = filtered.filter(p => (p.category || "").toLowerCase() === currentCategory.toLowerCase());
-  }
-
-  filtered = filtered.filter(p => (p.title || "").toLowerCase().includes(search));
+  const filtered = products.filter(p =>
+    (p.title || "").toLowerCase().includes(search)
+  );
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   if (currentPage > totalPages) currentPage = totalPages;
