@@ -4,70 +4,50 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Product — MyShop</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-
 <body class="bg-white min-h-screen text-gray-800">
-
-<!-- ================= HEADER ================= -->
-<header class="bg-gray shadow">
-  <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-    <a href="index.html" class="text-xl font-bold">MyShop</a>
-    <button id="btnCart" class="px-3 py-1 border rounded relative">
-      Cart <span id="cartCount" class="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded-full">0</span>
-    </button>
-  </div>
-</header>
-
-<!-- ================= MAIN CONTENT ================= -->
-<main class="container mx-auto px-4 py-8">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-
-    <!-- IMAGES -->
-    <div class="bg-white p-4 rounded mb-4">
-      <img id="mainProductImage" class="w-full max-h-96 object-contain mb-4 border rounded" />
-      <div id="productImages" class="flex gap-2 overflow-x-auto"></div>
-    </div>
-
-    <!-- PRODUCT DETAILS -->
-    <div class="bg-white p-6 rounded">
-      <h1 id="productTitle" class="text-2xl font-bold mb-2"></h1>
-      <p id="productDesc" class="text-gray-600 mb-4"></p>
-      <h2 id="productPrice" class="text-3xl font-bold mb-4"></h2>
-
-      <div class="flex items-center gap-3 mb-6">
-        <input id="quantity" type="number" value="1" min="1" class="w-20 border px-3 py-2 rounded" />
-        <button id="addToCart" class="px-6 py-2 bg-indigo-600 text-white rounded">Add to Cart</button>
+  <!-- NAV -->
+  <nav class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="products.html" class="text-xl font-bold">MyShop</a>
+      <div class="space-x-4">
+        <a href="products.html">All</a>
+        <a href="men.html">Men</a>
+        <a href="women.html">Women</a>
+        <a href="kids.html">Kids</a>
+        <a href="new.html">New Designs</a>
+      </div>
+      <div>
+        <button id="btnCart" class="relative px-3 py-1 border rounded">Cart
+          <span id="cartCount" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1">0</span>
+        </button>
       </div>
     </div>
+  </nav>
 
-  </div>
-</main>
+  <main class="container mx-auto px-4 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white p-4 rounded">
+        <img id="mainProductImage" class="w-full max-h-96 object-contain mb-4 border rounded" />
+        <div id="productImages" class="flex gap-2 overflow-x-auto"></div>
+      </div>
 
-<!-- ================= CART MODAL ================= -->
-<div id="cartModal" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center hidden z-50">
-  <div class="bg-white w-11/12 max-w-lg p-6 rounded shadow-lg relative">
-    <button id="closeCart" class="absolute top-2 right-2 text-gray-500 hover:text-gray-900 text-xl font-bold">&times;</button>
-    <h2 class="text-xl font-bold mb-4">Your Cart</h2>
-    <div id="cartItems" class="max-h-64 overflow-y-auto mb-4"></div>
-    <div class="flex justify-between font-bold text-lg mb-4">
-      <span>Total:</span>
-      <span id="cartTotal">$0</span>
+      <div class="bg-white p-6 rounded">
+        <h1 id="productTitle" class="text-2xl font-bold mb-2"></h1>
+        <p id="productDesc" class="text-gray-600 mb-4"></p>
+        <h2 id="productPrice" class="text-3xl font-bold mb-4"></h2>
+
+        <div class="flex items-center gap-3 mb-6">
+          <input id="quantity" type="number" value="1" min="1" class="w-20 border px-3 py-2 rounded" />
+          <button id="addToCart" class="px-6 py-2 bg-indigo-600 text-white rounded">Add to Cart</button>
+        </div>
+      </div>
     </div>
-    <div class="flex justify-between gap-4">
-      <button id="clearCart" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Clear Cart</button>
-      <button id="checkout" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Checkout</button>
-    </div>
-  </div>
-</div>
+  </main>
 
-<!-- ================= SCRIPT ================= -->
-<script src="script.js"></script>
+  <script src="script.js"></script>
+  <!-- script.js will run setupProductPage() on DOMContentLoaded -->
 </body>
 </html>
-
-
-
-
