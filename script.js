@@ -277,6 +277,8 @@ function attachAuthModalHandlers() {
   const switchToLogin = qs("switchToLogin");
   const btnReset = qs("btnReset");
   const authMsg = qs("authMsg");
+    const btncart = qs("authMsg");
+   
 
   /* OPEN LOGIN MODAL */
   btnLogin?.addEventListener("click", () => {
@@ -357,3 +359,4 @@ function attachAuthModalHandlers() {
     alert(error ? error.message : "Reset email sent!");
   });
 }
+
