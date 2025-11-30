@@ -1,6 +1,6 @@
 /* =======================================================
-   FINAL script.js — Auth + Reset + Products + Cart + Orders 
-   (Signup → Show Login Form, No Auto Login, No Email Verify)
+   UPDATED script.js — Auth + Reset + Products + Cart + Orders + Categories
+   Uses categories: "Men", "Women", "kids", "New Design"
 ======================================================= */
 
 /* ========== Supabase Setup ========== */
@@ -25,15 +25,23 @@ function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
 
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", async () => {
+  updateCartUI();          // show stored cart state immediately
   await checkAuth();
   await handleResetExchange();
 
+  // Load products on products.html
   if (qs("productsGrid")) await loadProducts();
-  updateCartUI();
+
+  // If product page, setup product view
   await setupProductPage();
+
   attachAuthModalHandlers();
   setupCartModal();
   attachPaginationHandlers();
+
+  // update cartCount in header(s)
+  const cartCountEl = qs("cartCount");
+  if (cartCountEl) cartCountEl.textContent = cart.length;
 });
 
 /* ================= CART MODAL SETUP ================= */
@@ -44,15 +52,16 @@ function setupCartModal() {
   const clearCartBtn = qs("clearCart");
   const checkoutBtn = qs("checkout");
 
-  if (!btnCart || !cartModal) return;
-
-  btnCart.addEventListener("click", () => show(cartModal));
-  closeCart.addEventListener("click", () => hide(cartModal));
+  if (btnCart && cartModal) {
+    btnCart.addEventListener("click", () => cartModal.classList.toggle("hidden"));
+  }
+  if (closeCart) closeCart.addEventListener("click", () => hide(cartModal));
 
   clearCartBtn?.addEventListener("click", () => {
     cart = [];
     saveCart();
     updateCartUI();
+    toast("Cart cleared");
   });
 
   checkoutBtn?.addEventListener("click", async () => {
@@ -76,7 +85,6 @@ function setupCartModal() {
     saveCart();
     updateCartUI();
     hide(cartModal);
-
     window.location.href = "orders.html";
   });
 }
@@ -86,26 +94,24 @@ async function checkAuth() {
   const { data } = await sb.auth.getUser();
   const user = data?.user;
 
+  // If you have userArea / btnLogin / btnLogout in header, show/hide here
   const userArea = qs("userArea");
   const btnLogin = qs("btnLogin");
   const btnLogout = qs("btnLogout");
   const myOrdersBtn = qs("btnMyOrders");
 
   if (user) {
-    show(userArea);
-    hide(btnLogin);
-    show(btnLogout);
-    show(myOrdersBtn);
+    if (userArea) show(userArea);
+    if (btnLogin) hide(btnLogin);
+    if (btnLogout) show(btnLogout);
+    if (myOrdersBtn) show(myOrdersBtn);
 
-    btnLogout?.addEventListener("click", async () => {
-      await sb.auth.signOut();
-      location.reload();
-    });
+    if (btnLogout) btnLogout.onclick = async () => { await sb.auth.signOut(); location.href = "products.html"; };
   } else {
-    hide(userArea);
-    show(btnLogin);
-    hide(btnLogout);
-    hide(myOrdersBtn);
+    if (userArea) hide(userArea);
+    if (btnLogin) show(btnLogin);
+    if (btnLogout) hide(btnLogout);
+    if (myOrdersBtn) hide(myOrdersBtn);
   }
 }
 
@@ -115,9 +121,10 @@ async function handleResetExchange() {
   if (code) await sb.auth.exchangeCodeForSession(code);
 }
 
-/* ================= PRODUCTS ================= */
+/* ================= PRODUCTS (ALL) ================= */
 async function loadProducts() {
-  const { data } = await sb.from("products").select("*");
+  const { data, error } = await sb.from("products").select("*").order("id", { ascending: false });
+  if (error) { console.error(error); return; }
   products = data || [];
   renderProducts();
 }
@@ -127,9 +134,7 @@ function renderProducts() {
   if (!grid) return;
 
   const search = (qs("search")?.value || "").toLowerCase();
-  const filtered = products.filter(p =>
-    (p.title || "").toLowerCase().includes(search)
-  );
+  const filtered = products.filter(p => (p.title || "").toLowerCase().includes(search));
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   if (currentPage > totalPages) currentPage = totalPages;
@@ -141,7 +146,7 @@ function renderProducts() {
     <div class="bg-white p-4 rounded shadow flex flex-col">
       <img src="${p.image_url}" class="h-48 w-full object-contain mb-2" />
       <h3 class="font-semibold">${p.title}</h3>
-      <p class="text-gray-500">${p.description?.slice(0, 70)}...</p>
+      <p class="text-gray-500">${p.description?.slice(0, 70) || ""}...</p>
       <p class="text-xl font-bold mt-2">$${p.price}</p>
       <a href="product.html?id=${p.id}" class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded text-center">View</a>
     </div>
@@ -164,37 +169,31 @@ function attachPaginationHandlers() {
   });
 }
 
-/* ================= PRODUCT PAGE ================= */
+/* ================= PRODUCT PAGE (single) ================= */
 async function setupProductPage() {
-  if (!qs("addToCart")) return;
+  if (!qs("addToCart")) return; // not on product page
 
   const id = Number(new URLSearchParams(window.location.search).get("id"));
   if (!id) return;
 
-  const { data: product } = await sb.from("products")
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (!product) return;
+  const { data: product, error } = await sb.from("products").select("*").eq("id", id).single();
+  if (error || !product) return;
 
   qs("productTitle").textContent = product.title;
-  qs("productDesc").textContent = product.description;
+  qs("productDesc").textContent = product.description || "";
   qs("productPrice").textContent = "$" + product.price;
 
   const mainImg = qs("mainProductImage");
   const gallery = qs("productImages");
 
   let allImages = [];
-  let designImgs = [];
-
   try {
-    designImgs = typeof product.design_images === "string"
-      ? JSON.parse(product.design_images)
-      : product.design_images || [];
-  } catch { designImgs = []; }
-
-  if (product.image_url) allImages.push(product.image_url);
-  if (Array.isArray(designImgs)) allImages.push(...designImgs);
+    const designImgs = Array.isArray(product.design_images) ? product.design_images : (product.design_images ? JSON.parse(product.design_images) : []);
+    if (product.image_url) allImages.push(product.image_url);
+    if (Array.isArray(designImgs)) allImages.push(...designImgs);
+  } catch (e) {
+    if (product.image_url) allImages.push(product.image_url);
+  }
 
   allImages = [...new Set(allImages)];
   if (allImages.length) mainImg.src = allImages[0];
@@ -208,15 +207,49 @@ async function setupProductPage() {
     gallery.appendChild(img);
   });
 
-  qs("addToCart").addEventListener("click", () => {
+  qs("addToCart").onclick = () => {
     const qty = Number(qs("quantity").value) || 1;
-    const existing = cart.find(i => i.id === id);
+    const existing = cart.find(i => i.id === product.id);
     if (existing) existing.qty += qty;
-    else cart.push({ id, title: product.title, price: product.price, qty });
+    else cart.push({ id: product.id, title: product.title, price: product.price, qty, image: product.image_url || "" });
     saveCart();
     updateCartUI();
     toast("Added to cart");
-  });
+  };
+}
+
+/* ================= CATEGORY PAGES ================= */
+async function loadProductsByCategory(categoryName) {
+  // categoryName must match exactly what's in DB: "Men", "Women", "kids", "New Design"
+  try {
+    const { data, error } = await sb.from("products").select("*").eq("category", categoryName).order("id", { ascending: false });
+    if (error) { console.error(error); return; }
+    const container = document.getElementById("productList");
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (!data || !data.length) {
+      container.innerHTML = `<p class="text-gray-600">No products found.</p>`;
+      return;
+    }
+
+    data.forEach((p) => {
+      container.innerHTML += `
+        <div class="bg-white p-3 rounded shadow">
+          <img src="${p.image_url}" class="w-full h-40 object-cover rounded" alt="${p.title}">
+          <h2 class="font-semibold mt-2">${p.title}</h2>
+          <p class="text-sm text-gray-600">${p.description || ""}</p>
+          <p class="font-bold mt-1">$${p.price}</p>
+          <div class="mt-2 flex gap-2">
+            <a href="product.html?id=${p.id}" class="flex-1 text-center bg-gray-200 py-1 rounded">View</a>
+            <button onclick="addToCart(${p.id})" class="flex-1 bg-blue-600 text-white py-1 rounded">Add to Cart</button>
+          </div>
+        </div>
+      `;
+    });
+  } catch (e) {
+    console.error("Load category error:", e);
+  }
 }
 
 /* ================= CART UI ================= */
@@ -226,24 +259,28 @@ function updateCartUI() {
   const cartTotal = qs("cartTotal");
 
   if (cartCount) cartCount.textContent = cart.length;
+
+  // update all header cartCount elements if multiple present
+  document.querySelectorAll("#cartCount").forEach(el => el.textContent = cart.length);
+
   if (!cartItems || !cartTotal) return;
 
   cartItems.innerHTML = "";
   let total = 0;
 
   cart.forEach((item, index) => {
-    total += item.price * item.qty;
+    total += (Number(item.price) || 0) * (Number(item.qty) || 0);
 
     cartItems.innerHTML += `
-      <div class="flex justify-between border-b pb-2 mt-2">
+      <div class="flex justify-between border-b pb-2 mt-2 items-center">
         <div>
           <p class="font-semibold">${item.title}</p>
-          <p>$${item.price} × ${item.qty}</p>
+          <p class="text-sm">$${item.price} × ${item.qty}</p>
         </div>
-        <div class="flex gap-2">
-          <button class="decrease" data-i="${index}">-</button>
-          <button class="increase" data-i="${index}">+</button>
-          <button class="remove" data-i="${index}">Remove</button>
+        <div class="flex gap-2 items-center">
+          <button class="decrease px-2 py-1 border rounded" data-i="${index}">-</button>
+          <button class="increase px-2 py-1 border rounded" data-i="${index}">+</button>
+          <button class="remove px-2 py-1 border rounded" data-i="${index}">Remove</button>
         </div>
       </div>
     `;
@@ -251,19 +288,44 @@ function updateCartUI() {
 
   cartTotal.textContent = "$" + total;
 
+  // handlers
   cartItems.querySelectorAll(".remove").forEach(b => {
-    b.onclick = () => { cart.splice(b.dataset.i, 1); saveCart(); updateCartUI(); };
+    b.onclick = () => { cart.splice(Number(b.dataset.i), 1); saveCart(); updateCartUI(); };
   });
   cartItems.querySelectorAll(".increase").forEach(b => {
-    b.onclick = () => { cart[b.dataset.i].qty++; saveCart(); updateCartUI(); };
+    b.onclick = () => { cart[Number(b.dataset.i)].qty++; saveCart(); updateCartUI(); };
   });
   cartItems.querySelectorAll(".decrease").forEach(b => {
-    b.onclick = () => { 
-      if(cart[b.dataset.i].qty > 1) cart[b.dataset.i].qty--;
-      saveCart(); 
-      updateCartUI(); 
+    b.onclick = () => {
+      const i = Number(b.dataset.i);
+      if (cart[i].qty > 1) cart[i].qty--;
+      else cart.splice(i, 1);
+      saveCart(); updateCartUI();
     };
   });
+
+  // update header counters again
+  document.querySelectorAll("#cartCount").forEach(el => el.textContent = cart.length);
+}
+
+/* ================= ADD TO CART BY ID ================= */
+async function addToCart(productId) {
+  // Try to find in local products cache first
+  let product = products.find(p => Number(p.id) === Number(productId));
+  if (!product) {
+    // fetch single product
+    const { data, error } = await sb.from("products").select("*").eq("id", productId).single();
+    if (error || !data) { console.error(error); toast("Product not found"); return; }
+    product = data;
+  }
+
+  const existing = cart.find(i => Number(i.id) === Number(product.id));
+  if (existing) existing.qty++;
+  else cart.push({ id: product.id, title: product.title, price: product.price, qty: 1, image: product.image_url || "" });
+
+  saveCart();
+  updateCartUI();
+  toast("Added to cart");
 }
 
 /* ================= AUTH MODAL ================= */
@@ -277,122 +339,102 @@ function attachAuthModalHandlers() {
   const btnReset = qs("btnReset");
   const authMsg = qs("authMsg");
 
-  /* OPEN LOGIN MODAL */
-  btnLogin?.addEventListener("click", () => {
-    qs("authTitle").textContent = "Login";
-    qs("authDesc").textContent = "Enter your credentials.";
-    submitAuth.textContent = "Login";
-    show(switchToSignup);
-    hide(switchToLogin);
-    show(loginModal);
-  });
+  if (btnLogin) btnLogin.onclick = () => {
+    if (loginModal) {
+      qs("authTitle").textContent = "Login";
+      qs("authDesc").textContent = "Enter your credentials.";
+      submitAuth.textContent = "Login";
+      if (switchToSignup) switchToSignup.style.display = "inline";
+      if (switchToLogin) switchToLogin.style.display = "none";
+      loginModal.classList.toggle("hidden");
+    }
+  };
 
-  cancelAuth?.addEventListener("click", () => hide(loginModal));
+  cancelAuth?.addEventListener("click", () => loginModal && loginModal.classList.add("hidden"));
 
-  /* SWITCH TO SIGNUP */
   switchToSignup?.addEventListener("click", () => {
     qs("authTitle").textContent = "Signup";
     qs("authDesc").textContent = "Create your account.";
     submitAuth.textContent = "Signup";
-    hide(switchToSignup);
-    show(switchToLogin);
+    switchToSignup.style.display = "none";
+    switchToLogin.style.display = "inline";
   });
 
-  /* SWITCH TO LOGIN */
   switchToLogin?.addEventListener("click", () => {
     qs("authTitle").textContent = "Login";
     qs("authDesc").textContent = "Enter your credentials.";
     submitAuth.textContent = "Login";
-    hide(switchToLogin);
-    show(switchToSignup);
+    switchToSignup.style.display = "inline";
+    switchToLogin.style.display = "none";
   });
 
-  /* SUBMIT LOGIN / SIGNUP */
   submitAuth?.addEventListener("click", async () => {
     const email = qs("authEmail").value.trim();
     const pass = qs("authPass").value.trim();
     authMsg.textContent = "Processing...";
 
-    /* LOGIN */
     if (submitAuth.textContent === "Login") {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-      authMsg.textContent = error ? error.message : "";
-      if (!error) location.reload();
+      if (error) { authMsg.textContent = error.message; return; }
+      authMsg.textContent = "";
+      location.reload();
       return;
     }
 
-    /* SIGNUP (NO AUTO LOGIN) */
-    const { error: signupErr } = await sb.auth.signUp({
-      email,
-      password: pass,
-      options: { emailRedirectTo: null }
-    });
-
-    if (signupErr) {
-      authMsg.textContent = signupErr.message;
-      return;
-    }
-
-    /* SHOW LOGIN FORM AFTER SIGNUP */
+    const { error: signupErr } = await sb.auth.signUp({ email, password: pass, options: { emailRedirectTo: null }});
+    if (signupErr) { authMsg.textContent = signupErr.message; return; }
     authMsg.textContent = "Signup successful! Please login now.";
-
     qs("authTitle").textContent = "Login";
     qs("authDesc").textContent = "Enter your email & password.";
     submitAuth.textContent = "Login";
-
-    show(switchToSignup);
-    hide(switchToLogin);
   });
 
-  /* RESET PASSWORD */
   btnReset?.addEventListener("click", async () => {
     const email = qs("authEmail").value.trim();
     if (!email) return alert("Enter your email first!");
-
-    const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/reset.html"
-    });
-
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset.html" });
     alert(error ? error.message : "Reset email sent!");
   });
 }
-async function loadProductsByCategory(categoryName) {
-  try {
-    const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("category", categoryName);
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    const container = document.getElementById("productList");
-    container.innerHTML = "";
-
-    if (!data.length) {
-      container.innerHTML = `<p class="text-gray-600">No products found.</p>`;
-      return;
-    }
-
-    data.forEach((p) => {
-      container.innerHTML += `
-        <div class="bg-white p-3 rounded shadow">
-          <img src="${p.image_url}" class="w-full h-40 object-cover rounded">
-          <h2 class="font-semibold mt-2">${p.title}</h2>
-          <p class="text-sm text-gray-600">${p.description || ""}</p>
-          <p class="font-bold mt-1">$${p.price}</p>
-
-          <button onclick="addToCart(${p.id})"
-            class="mt-2 w-full bg-blue-600 text-white py-1 rounded">
-            Add to Cart
-          </button>
-        </div>
-      `;
-    });
-  } catch (e) {
-    console.error("Load category error:", e);
+/* ================= ORDERS PAGE LOADER ================= */
+async function loadOrdersPageIfPresent() {
+  if (!qs("ordersList")) return;
+  const user = (await sb.auth.getUser()).data?.user;
+  const ordersList = qs("ordersList");
+  if (!user) {
+    ordersList.innerHTML = "<p class='text-center mt-10 text-red-600'>Please login to view your orders.</p>";
+    return;
   }
+  const { data: orders, error } = await sb.from("orders").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+  if (error) { ordersList.innerHTML = "<p class='text-red-600'>Error loading orders.</p>"; return; }
+  if (!orders.length) { ordersList.innerHTML = "<p class='text-gray-600 text-center mt-8'>You have no orders yet.</p>"; return; }
+
+  ordersList.innerHTML = orders.map(order => `
+    <div class="bg-white p-4 rounded shadow">
+      <div class="flex justify-between">
+        <p class="font-semibold text-lg">Order #${order.id}</p>
+        <span class="text-indigo-600 font-semibold">${order.status ? order.status : "Complete"}</span>
+      </div>
+      <p class="text-sm text-gray-500">${new Date(order.created_at).toLocaleString()}</p>
+      <p class="mt-2 font-bold">Total: $${order.total}</p>
+      <details class="mt-3">
+        <summary class="cursor-pointer font-semibold text-gray-700">View Items</summary>
+        <div class="mt-2 space-y-3">
+          ${order.items.map(item => `
+            <div class="border p-3 rounded flex gap-3 items-center">
+              ${item.image ? `<img src="${item.image}" class="w-16 h-16 object-cover rounded" />` : ""}
+              <div>
+                <p class="font-semibold">${item.title}</p>
+                <p class="text-sm text-gray-600">Qty: ${item.qty} × $${item.price} = <span class="font-semibold">$${item.qty * item.price}</span></p>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </details>
+    </div>
+  `).join("");
 }
 
+/* Run orders loader if ordersList present (after DOM ready) */
+document.addEventListener("DOMContentLoaded", loadOrdersPageIfPresent);
