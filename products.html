@@ -1,42 +1,49 @@
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Products</title>
+  <title>Product — MyShop</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-50 min-h-screen text-gray-800">
 
-  <!-- NAVBAR -->
-  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
-    <h1 class="text-xl font-bold">MyShop</h1>
-
-    <ul class="flex items-center space-x-6">
-      <li><a href="index.html" class="hover:text-blue-600">Home</a></li>
-      <li class="relative group">
-        <button class="hover:text-blue-600">Categories</button>
-        <div class="hidden group-hover:block absolute bg-white shadow-md rounded mt-2 w-40">
-          <a href="products.html?category=Men" class="block px-4 py-2 hover:bg-gray-100">Men</a>
-          <a href="products.html?category=Women" class="block px-4 py-2 hover:bg-gray-100">Women</a>
-          <a href="products.html?category=Kids" class="block px-4 py-2 hover:bg-gray-100">Kids</a>
-          <a href="products.html?category=New%20Designs" class="block px-4 py-2 hover:bg-gray-100">New Designs</a>
-        </div>
-      </li>
-      <li><a href="orders.html" class="hover:text-blue-600">My Orders</a></li>
-    </ul>
-  </nav>
-
-  <!-- PAGE TITLE -->
-  <div class="text-center my-6">
-    <h2 id="categoryTitle" class="text-3xl font-bold"></h2>
+<header class="bg-white shadow">
+  <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+    <a href="index.html" class="text-xl font-bold">MyShop</a>
+    <button id="btnCart" class="px-3 py-1 border rounded">Cart</button>
   </div>
+</header>
 
-  <!-- PRODUCTS GRID -->
-  <div id="productsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 px-6 pb-10"></div>
+<main class="container mx-auto px-4 py-8">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
-  <script src="script.js"></script>
+    <!-- IMAGES -->
+    <div class="bg-white p-4 rounded mb-4">
+      <img id="mainProductImage" class="w-full max-h-96 object-contain mb-4 border rounded" />
+
+      <div id="productImages" class="flex gap-2 overflow-x-auto"></div>
+    </div>
+
+    <!-- PRODUCT DETAILS -->
+    <div class="bg-white p-6 rounded">
+      <h1 id="productTitle" class="text-2xl font-bold mb-2"></h1>
+      <p id="productDesc" class="text-gray-600 mb-4"></p>
+      <h2 id="productPrice" class="text-3xl font-bold mb-4"></h2>
+
+      <div class="flex items-center gap-3 mb-6">
+        <input id="quantity" type="number" value="1" min="1" class="w-20 border px-3 py-2 rounded" />
+        <button id="addToCart" class="px-6 py-2 bg-indigo-600 text-white rounded">Add to Cart</button>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="script.js"></script>
 </body>
 </html>
