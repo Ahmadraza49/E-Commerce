@@ -356,3 +356,43 @@ function attachAuthModalHandlers() {
     alert(error ? error.message : "Reset email sent!");
   });
 }
+async function loadProductsByCategory(categoryName) {
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("category", categoryName);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const container = document.getElementById("productList");
+    container.innerHTML = "";
+
+    if (!data.length) {
+      container.innerHTML = `<p class="text-gray-600">No products found.</p>`;
+      return;
+    }
+
+    data.forEach((p) => {
+      container.innerHTML += `
+        <div class="bg-white p-3 rounded shadow">
+          <img src="${p.image_url}" class="w-full h-40 object-cover rounded">
+          <h2 class="font-semibold mt-2">${p.title}</h2>
+          <p class="text-sm text-gray-600">${p.description || ""}</p>
+          <p class="font-bold mt-1">$${p.price}</p>
+
+          <button onclick="addToCart(${p.id})"
+            class="mt-2 w-full bg-blue-600 text-white py-1 rounded">
+            Add to Cart
+          </button>
+        </div>
+      `;
+    });
+  } catch (e) {
+    console.error("Load category error:", e);
+  }
+}
+
