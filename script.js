@@ -1,7 +1,10 @@
-
 /* =======================================================
-   FINAL script.js — Auth + Reset + Products + Cart + Orders 
-   (Signup → Show Login Form, No Auto Login, No Email Verify)
+   CLEANED script.js — Auth + Reset + Products + Cart + Orders
+   Supports:
+   - Main products page (productsGrid)
+   - Product page (product.html?id=... OR product.html?img=...)
+   - Category pages (menImages / womenImages / kidsImages)
+   - Cart modal, add to cart, checkout
 ======================================================= */
 
 /* ========== Supabase Setup ========== */
@@ -9,7 +12,10 @@ const SUPABASE_URL = "https://ytxhlihzxgftffaikumr.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA";
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+if (!window.supabase) {
+  console.error("Supabase client not loaded. Make sure the <script src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'></script> is included BEFORE script.js");
+}
+const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /* ========== Global Variables ========== */
 let products = [];
@@ -26,15 +32,33 @@ function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
 
 /* ================= INIT ================= */
 document.addEventListener("DOMContentLoaded", async () => {
-  await checkAuth();
-  await handleResetExchange();
+  // basic init tasks
+  await checkAuth().catch(e => console.error(e));
+  await handleResetExchange().catch(e => console.error(e));
 
-  if (qs("productsGrid")) await loadProducts();
+  if (qs("productsGrid")) await loadProducts().catch(e => console.error(e));
   updateCartUI();
-  await setupProductPage();
+  await setupProductPage().catch(e => console.error(e)); // handles product.html (id or img)
   attachAuthModalHandlers();
   setupCartModal();
   attachPaginationHandlers();
+
+  // categories dropdown safe wiring
+  const btnCategories = qs("btnCategories");
+  const menuCategories = qs("menuCategories");
+  if (btnCategories && menuCategories) {
+    btnCategories.addEventListener("click", () => menuCategories.classList.toggle("hidden"));
+    document.addEventListener("click", (e) => {
+      if (!btnCategories.contains(e.target) && !menuCategories.contains(e.target)) {
+        menuCategories.classList.add("hidden");
+      }
+    });
+  }
+
+  // Auto-load category pages if their container exists
+  if (qs("menImages")) loadCategoryImages("men", "menImages");
+  if (qs("womenImages")) loadCategoryImages("women", "womenImages");
+  if (qs("kidsImages")) loadCategoryImages("kids", "kidsImages");
 });
 
 /* ================= CART MODAL SETUP ================= */
@@ -45,10 +69,12 @@ function setupCartModal() {
   const clearCartBtn = qs("clearCart");
   const checkoutBtn = qs("checkout");
 
-  if (!btnCart || !cartModal) return;
+  // If there's no cart modal or cart button on page, do nothing
+  if (!cartModal) return;
 
-  btnCart.addEventListener("click", () => show(cartModal));
-  closeCart.addEventListener("click", () => hide(cartModal));
+  // show/hide
+  if (btnCart) btnCart.addEventListener("click", () => show(cartModal));
+  if (closeCart) closeCart.addEventListener("click", () => hide(cartModal));
 
   clearCartBtn?.addEventListener("click", () => {
     cart = [];
@@ -57,33 +83,38 @@ function setupCartModal() {
   });
 
   checkoutBtn?.addEventListener("click", async () => {
-    const user = (await sb.auth.getUser()).data?.user;
-    if (!user) return toast("Please login first");
-    if (!cart.length) return toast("Cart is empty");
+    try {
+      const user = (await sb.auth.getUser()).data?.user;
+      if (!user) return toast("Please login first");
+      if (!cart.length) return toast("Cart is empty");
 
-    const order = {
-      user_id: user.id,
-      items: cart,
-      total: cart.reduce((a, b) => a + b.price * b.qty, 0),
-      status: "pending",
-      created_at: new Date().toISOString()
-    };
+      const order = {
+        user_id: user.id,
+        items: cart,
+        total: cart.reduce((a, b) => a + Number(b.price) * Number(b.qty), 0),
+        status: "pending",
+        created_at: new Date().toISOString()
+      };
 
-    const { error } = await sb.from("orders").insert([order]);
-    if (error) return toast("Order error: " + error.message);
+      const { error } = await sb.from("orders").insert([order]);
+      if (error) return toast("Order error: " + error.message);
 
-    toast("Order placed!");
-    cart = [];
-    saveCart();
-    updateCartUI();
-    hide(cartModal);
-
-    window.location.href = "orders.html";
+      toast("Order placed!");
+      cart = [];
+      saveCart();
+      updateCartUI();
+      hide(cartModal);
+      window.location.href = "orders.html";
+    } catch (err) {
+      console.error(err);
+      toast("Checkout failed");
+    }
   });
 }
 
 /* ================= AUTH CHECK ================= */
 async function checkAuth() {
+  if (!sb) return;
   const { data } = await sb.auth.getUser();
   const user = data?.user;
 
@@ -93,31 +124,33 @@ async function checkAuth() {
   const myOrdersBtn = qs("btnMyOrders");
 
   if (user) {
-    show(userArea);
-    hide(btnLogin);
-    show(btnLogout);
-    show(myOrdersBtn);
+    if (userArea) show(userArea);
+    if (btnLogin) hide(btnLogin);
+    if (btnLogout) show(btnLogout);
+    if (myOrdersBtn) show(myOrdersBtn);
 
     btnLogout?.addEventListener("click", async () => {
       await sb.auth.signOut();
       location.reload();
     });
   } else {
-    hide(userArea);
-    show(btnLogin);
-    hide(btnLogout);
-    hide(myOrdersBtn);
+    if (userArea) hide(userArea);
+    if (btnLogin) show(btnLogin);
+    if (btnLogout) hide(btnLogout);
+    if (myOrdersBtn) hide(myOrdersBtn);
   }
 }
 
 /* ================= RESET PASSWORD EXCHANGE ================= */
 async function handleResetExchange() {
+  if (!sb) return;
   const code = new URLSearchParams(window.location.search).get("code");
   if (code) await sb.auth.exchangeCodeForSession(code);
 }
 
-/* ================= PRODUCTS ================= */
+/* ================= PRODUCTS (main listing) ================= */
 async function loadProducts() {
+  if (!sb) return;
   const { data } = await sb.from("products").select("*");
   products = data || [];
   renderProducts();
@@ -140,15 +173,18 @@ function renderProducts() {
 
   grid.innerHTML = pageItems.map(p => `
     <div class="bg-white p-4 rounded shadow flex flex-col">
-      <img src="${p.image_url}" class="h-48 w-full object-contain mb-2" />
+      <img src="${p.image_url || ''}" class="h-48 w-full object-contain mb-2" />
       <h3 class="font-semibold">${p.title}</h3>
-      <p class="text-gray-500">${p.description?.slice(0, 70)}...</p>
+      <p class="text-gray-500">${(p.description||'').slice(0, 70)}...</p>
       <p class="text-xl font-bold mt-2">$${p.price}</p>
-      <a href="product.html?id=${p.id}" class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded text-center">View</a>
+      <div class="mt-auto flex gap-2 pt-2">
+        <a href="product.html?id=${p.id}" class="px-3 py-2 bg-gray-200 rounded text-center flex-1">View</a>
+        <button onclick="addToCartFromCategory(${p.id})" class="px-3 py-2 bg-indigo-600 text-white rounded flex-1">Add</button>
+      </div>
     </div>
   `).join("");
 
-  qs("pageInfo").textContent = `Page ${currentPage} of ${totalPages}`;
+  if (qs("pageInfo")) qs("pageInfo").textContent = `Page ${currentPage} of ${totalPages}`;
 }
 
 /* ================= PAGINATION ================= */
@@ -165,22 +201,144 @@ function attachPaginationHandlers() {
   });
 }
 
-/* ================= PRODUCT PAGE ================= */
+/* ================= CATEGORY IMAGES (for men/women/kids pages) ================= */
+async function loadCategoryImages(category, containerId) {
+  if (!sb) return;
+  const box = document.getElementById(containerId);
+  if (!box) return;
+
+  // first try: if you also keep products with category, fetch from products table
+  // fallback: fetch from category_images table
+  let data = null;
+  try {
+    const prodRes = await sb.from("products").select("*").eq("category", category);
+    if (prodRes.error) throw prodRes.error;
+    if (prodRes.data && prodRes.data.length) {
+      data = prodRes.data.map(p => ({
+        image_url: p.image_url,
+        title: p.title,
+        price: p.price,
+        product_id: p.id
+      }));
+    } else {
+      // try category_images table
+      const catRes = await sb.from("category_images").select("*").eq("category", category);
+      if (catRes.error) throw catRes.error;
+      data = catRes.data || [];
+    }
+  } catch (err) {
+    console.error("loadCategoryImages error:", err);
+    box.innerHTML = "<p class='text-red-600'>Error loading items</p>";
+    return;
+  }
+
+  // render grid cards (either product records or plain images from category_images)
+  box.innerHTML = (data || []).map(item => {
+    // if product_id exists we render product card with View + Add
+    if (item.product_id) {
+      return `
+        <div class="bg-white p-3 rounded shadow flex flex-col">
+          <img src="${item.image_url || ''}" class="w-full h-56 object-cover rounded mb-3" />
+          <h3 class="font-semibold mb-1">${item.title || ''}</h3>
+          <p class="font-bold mb-3">$${item.price || ''}</p>
+          <div class="mt-auto flex gap-2">
+            <a href="product.html?id=${item.product_id}" class="px-3 py-2 bg-gray-200 rounded flex-1 text-center">View</a>
+            <button onclick="addToCartFromCategory(${item.product_id})" class="px-3 py-2 bg-indigo-600 text-white rounded flex-1">Add</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // else it's a simple image entry from category_images table
+    const url = item.image_url || "";
+    return `
+      <div class="bg-white p-3 rounded shadow flex flex-col">
+        <img src="${url}" class="w-full h-64 object-cover rounded mb-3" />
+        <div class="mt-auto">
+          <button onclick="window.location.href='product.html?img=${encodeURIComponent(url)}'"
+            class="w-full px-3 py-2 bg-indigo-600 text-white rounded">View</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+/* ========== Add to cart helper used by category/product listings ========== */
+async function addToCartFromCategory(productId) {
+  try {
+    if (!sb) return;
+    // fetch product by id
+    const { data, error } = await sb.from("products").select("*").eq("id", productId).single();
+    if (error || !data) {
+      console.error(error || "No product");
+      return toast("Cannot add to cart (product not found)");
+    }
+    const existing = cart.find(i => i.id === data.id);
+    if (existing) existing.qty += 1;
+    else cart.push({ id: data.id, title: data.title, price: Number(data.price || 0), qty: 1 });
+    saveCart();
+    updateCartUI();
+    toast("Added to cart");
+  } catch (err) {
+    console.error(err);
+    toast("Add to cart failed");
+  }
+}
+
+/* ================= PRODUCT PAGE (single) =================
+   Supports:
+   - product.html?id=123  => load product from products table
+   - product.html?img=URL  => preview an image (custom), price set to example $99
+========================================================= */
 async function setupProductPage() {
+  // page might not have addToCart element -> return early
   if (!qs("addToCart")) return;
 
-  const id = Number(new URLSearchParams(window.location.search).get("id"));
-  if (!id) return;
+  const params = new URLSearchParams(window.location.search);
+  const imgUrl = params.get("img");
+  const id = params.get("id");
 
-  const { data: product } = await sb.from("products")
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (!product) return;
+  // Case A: opened from category image (img param only)
+  if (imgUrl && !id) {
+    qs("productTitle").textContent = "Custom Design";
+    qs("productDesc").textContent = "Preview of selected design.";
+    qs("productPrice").textContent = "$99";
 
-  qs("productTitle").textContent = product.title;
-  qs("productDesc").textContent = product.description;
-  qs("productPrice").textContent = "$" + product.price;
+    const mainImg = qs("mainProductImage");
+    const gallery = qs("productImages");
+    mainImg.src = imgUrl;
+    gallery.innerHTML = `
+      <img src="${imgUrl}" class="w-20 h-20 object-cover rounded cursor-pointer border" onclick="document.getElementById('mainProductImage').src='${imgUrl}'" />
+    `;
+
+    qs("addToCart").onclick = () => {
+      const qty = Number(qs("quantity").value) || 1;
+      cart.push({
+        id: "design-" + Date.now(),
+        title: "Custom Design",
+        price: 99,
+        qty
+      });
+      saveCart();
+      updateCartUI();
+      toast("Added design to cart");
+    };
+    return;
+  }
+
+  // Case B: normal product with id
+  if (!id) return; // not a product page
+
+  if (!sb) return;
+  const { data: product, error } = await sb.from("products").select("*").eq("id", Number(id)).single();
+  if (error || !product) {
+    console.error("Product load error:", error);
+    return;
+  }
+
+  qs("productTitle").textContent = product.title || "";
+  qs("productDesc").textContent = product.description || "";
+  qs("productPrice").textContent = "$" + (product.price ?? 0);
 
   const mainImg = qs("mainProductImage");
   const gallery = qs("productImages");
@@ -192,15 +350,17 @@ async function setupProductPage() {
     designImgs = typeof product.design_images === "string"
       ? JSON.parse(product.design_images)
       : product.design_images || [];
-  } catch { designImgs = []; }
+  } catch (err) {
+    designImgs = [];
+  }
 
   if (product.image_url) allImages.push(product.image_url);
   if (Array.isArray(designImgs)) allImages.push(...designImgs);
 
   allImages = [...new Set(allImages)];
   if (allImages.length) mainImg.src = allImages[0];
-
   gallery.innerHTML = "";
+
   allImages.forEach(url => {
     const img = document.createElement("img");
     img.src = url;
@@ -209,57 +369,15 @@ async function setupProductPage() {
     gallery.appendChild(img);
   });
 
-  qs("addToCart").addEventListener("click", () => {
+  qs("addToCart").onclick = () => {
     const qty = Number(qs("quantity").value) || 1;
-    const existing = cart.find(i => i.id === id);
+    const existing = cart.find(i => i.id === product.id);
     if (existing) existing.qty += qty;
-    else cart.push({ id, title: product.title, price: product.price, qty });
+    else cart.push({ id: product.id, title: product.title, price: Number(product.price || 0), qty });
     saveCart();
     updateCartUI();
     toast("Added to cart");
-  });
-}
-async function setupProductPage() {
-  if (!qs("addToCart")) return;
-
-  const params = new URLSearchParams(window.location.search);
-  const imgUrl = params.get("img");
-  const id = params.get("id");
-
-  /* ========== If User Open From Category Page ========== */
-  if (imgUrl && !id) {
-    qs("productTitle").textContent = "Custom Design";
-    qs("productDesc").textContent = "Your selected design preview.";
-    qs("productPrice").textContent = "$99";
-
-    const mainImg = qs("mainProductImage");
-    const gallery = qs("productImages");
-
-    mainImg.src = imgUrl;
-
-    gallery.innerHTML = `
-      <img src="${imgUrl}" 
-           class="w-20 h-20 object-cover rounded cursor-pointer border" />
-    `;
-
-    qs("addToCart").onclick = () => {
-      const qty = Number(qs("quantity").value) || 1;
-      cart.push({ 
-        id: "design-" + Date.now(),
-        title: "Custom Design",
-        price: 99,
-        qty 
-      });
-      saveCart();
-      updateCartUI();
-      toast("Added to cart");
-    };
-
-    return;
-  }
-
-  /* ========== Normal Product Load (ID based) ========== */
-  ...
+  };
 }
 
 /* ================= CART UI ================= */
@@ -269,13 +387,16 @@ function updateCartUI() {
   const cartTotal = qs("cartTotal");
 
   if (cartCount) cartCount.textContent = cart.length;
-  if (!cartItems || !cartTotal) return;
+  if (!cartItems || !cartTotal) {
+    // still ensure cartCount updates if exists
+    return;
+  }
 
   cartItems.innerHTML = "";
   let total = 0;
 
   cart.forEach((item, index) => {
-    total += item.price * item.qty;
+    total += Number(item.price || 0) * Number(item.qty || 0);
 
     cartItems.innerHTML += `
       <div class="flex justify-between border-b pb-2 mt-2">
@@ -295,21 +416,22 @@ function updateCartUI() {
   cartTotal.textContent = "$" + total;
 
   cartItems.querySelectorAll(".remove").forEach(b => {
-    b.onclick = () => { cart.splice(b.dataset.i, 1); saveCart(); updateCartUI(); };
+    b.onclick = () => { cart.splice(Number(b.dataset.i), 1); saveCart(); updateCartUI(); };
   });
   cartItems.querySelectorAll(".increase").forEach(b => {
-    b.onclick = () => { cart[b.dataset.i].qty++; saveCart(); updateCartUI(); };
+    b.onclick = () => { cart[Number(b.dataset.i)].qty++; saveCart(); updateCartUI(); };
   });
   cartItems.querySelectorAll(".decrease").forEach(b => {
-    b.onclick = () => { 
-      if(cart[b.dataset.i].qty > 1) cart[b.dataset.i].qty--;
-      saveCart(); 
-      updateCartUI(); 
+    b.onclick = () => {
+      const idx = Number(b.dataset.i);
+      if (cart[idx].qty > 1) cart[idx].qty--;
+      saveCart();
+      updateCartUI();
     };
   });
 }
 
-/* ================= AUTH MODAL ================= */
+/* ================= AUTH MODAL (basic wiring) ================= */
 function attachAuthModalHandlers() {
   const loginModal = qs("loginModal");
   const btnLogin = qs("btnLogin");
@@ -319,22 +441,20 @@ function attachAuthModalHandlers() {
   const switchToLogin = qs("switchToLogin");
   const btnReset = qs("btnReset");
   const authMsg = qs("authMsg");
-    const btncart = qs("authMsg");
-   
 
-  /* OPEN LOGIN MODAL */
+  if (!submitAuth) return;
+
   btnLogin?.addEventListener("click", () => {
     qs("authTitle").textContent = "Login";
     qs("authDesc").textContent = "Enter your credentials.";
     submitAuth.textContent = "Login";
-    show(switchToSignup);
-    hide(switchToLogin);
+    if (switchToSignup) show(switchToSignup);
+    if (switchToLogin) hide(switchToLogin);
     show(loginModal);
   });
 
   cancelAuth?.addEventListener("click", () => hide(loginModal));
 
-  /* SWITCH TO SIGNUP */
   switchToSignup?.addEventListener("click", () => {
     qs("authTitle").textContent = "Signup";
     qs("authDesc").textContent = "Create your account.";
@@ -343,7 +463,6 @@ function attachAuthModalHandlers() {
     show(switchToLogin);
   });
 
-  /* SWITCH TO LOGIN */
   switchToLogin?.addEventListener("click", () => {
     qs("authTitle").textContent = "Login";
     qs("authDesc").textContent = "Enter your credentials.";
@@ -352,21 +471,19 @@ function attachAuthModalHandlers() {
     show(switchToSignup);
   });
 
-  /* SUBMIT LOGIN / SIGNUP */
-  submitAuth?.addEventListener("click", async () => {
-    const email = qs("authEmail").value.trim();
-    const pass = qs("authPass").value.trim();
-    authMsg.textContent = "Processing...";
+  submitAuth.addEventListener("click", async () => {
+    if (!sb) return;
+    const email = qs("authEmail")?.value.trim() || "";
+    const pass = qs("authPass")?.value.trim() || "";
+    if (authMsg) authMsg.textContent = "Processing...";
 
-    /* LOGIN */
     if (submitAuth.textContent === "Login") {
       const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-      authMsg.textContent = error ? error.message : "";
+      if (authMsg) authMsg.textContent = error ? error.message : "";
       if (!error) location.reload();
       return;
     }
 
-    /* SIGNUP (NO AUTO LOGIN) */
     const { error: signupErr } = await sb.auth.signUp({
       email,
       password: pass,
@@ -374,122 +491,25 @@ function attachAuthModalHandlers() {
     });
 
     if (signupErr) {
-      authMsg.textContent = signupErr.message;
+      if (authMsg) authMsg.textContent = signupErr.message;
       return;
     }
 
-    /* SHOW LOGIN FORM AFTER SIGNUP */
-    authMsg.textContent = "Signup successful! Please login now.";
-
+    if (authMsg) authMsg.textContent = "Signup successful! Please login now.";
     qs("authTitle").textContent = "Login";
     qs("authDesc").textContent = "Enter your email & password.";
     submitAuth.textContent = "Login";
-
-    show(switchToSignup);
-    hide(switchToLogin);
+    if (switchToSignup) show(switchToSignup);
+    if (switchToLogin) hide(switchToLogin);
   });
 
-  /* RESET PASSWORD */
   btnReset?.addEventListener("click", async () => {
-    const email = qs("authEmail").value.trim();
+    if (!sb) return;
+    const email = qs("authEmail")?.value.trim();
     if (!email) return alert("Enter your email first!");
-
     const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + "/reset.html"
     });
-
     alert(error ? error.message : "Reset email sent!");
   });
 }
-// Categories Dropdown
-const btnCategories = document.getElementById("btnCategories");
-const menuCategories = document.getElementById("menuCategories");
-
-if (btnCategories) {
-  btnCategories.addEventListener("click", () => {
-    menuCategories.classList.toggle("hidden");
-  });
-}
-
-// Outside click close
-document.addEventListener("click", (e) => {
-  if (!btnCategories || !menuCategories) return;
-
-  if (!btnCategories.contains(e.target) && !menuCategories.contains(e.target)) {
-    menuCategories.classList.add("hidden");
-  }
-});
-
-async function loadCategoryImages(category, containerId) {
-  const box = document.getElementById(containerId);
-  if (!box) return;
-
-  const { data, error } = await sb
-    .from("category_images")
-    .select("*")
-    .eq("category", category);
-
-  if (error) {
-    console.error(error);
-    box.innerHTML = "<p>Error loading images</p>";
-    return;
-  }
-
-  box.innerHTML = data.map(img => `
-    <div class="bg-white p-3 rounded shadow">
-      <img src="${img.image_url}" class="w-full h-56 object-cover rounded" />
-    </div>
-  `).join("");
-}
-
-async function loadCategoryImages(category, containerId) {
-  const box = document.getElementById(containerId);
-  if (!box) return;
-
-  const { data, error } = await sb
-    .from("category_images")
-    .select("*")
-    .eq("category", category);
-
-  if (error) {
-    console.error(error);
-    box.innerHTML = "<p>Error loading images</p>";
-    return;
-  }
-
-  box.innerHTML = data.map(img => `
-    <div class="bg-white p-3 rounded shadow flex flex-col">
-      
-      <img src="${img.image_url}" 
-           class="w-full h-64 object-cover rounded mb-2" />
-
-      <button 
-        onclick="window.location.href='product.html?img=${encodeURIComponent(img.image_url)}'"
-        class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded">
-        View
-      </button>
-
-    </div>
-  `).join("");
-}
-
-// Auto load kids category images
-document.addEventListener("DOMContentLoaded", () => {
-
-  if (document.getElementById("menImages")) {
-    loadCategoryImages("men", "menImages");
-  }
-
-  if (document.getElementById("womenImages")) {
-    loadCategoryImages("women", "womenImages");
-  }
-
-  if (document.getElementById("kidsImages")) {
-    loadCategoryImages("kids", "kidsImages");
-  }
-
-});
-
-
-
-
