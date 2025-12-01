@@ -45,12 +45,14 @@
         My Orders
       </a>
 
-      <button id="btnCart"
-              class="px-4 py-2 bg-blue-600 text-white rounded flex items-center gap-1">
-        Cart
-        <span id="cartCount"
-              class=" text-blue-600 px-2 py-0.5 rounded text-sm">0</span>
-      </button>
+  <button id="btnCart" class="relative px-4 py-2 bg-blue-600 text-white rounded">
+  Cart
+  <span id="cartCount"
+        class="absolute -top-2 -right-2 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+    0
+  </span>
+</button>
+
     </div>
 
   </div>
@@ -154,6 +156,7 @@
 
 </body>
 </html>
+
 
 
 
