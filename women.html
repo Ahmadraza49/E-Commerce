@@ -6,7 +6,6 @@
   <title>Women — MyShop</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 </head>
 
 <body class="bg-gray-50 min-h-screen">
@@ -20,11 +19,12 @@
 <main class="container mx-auto px-4 py-8">
   <h1 class="text-3xl font-bold mb-4">Women Products</h1>
 
-  <div id="womenImages" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-    <!-- JS will load products here -->
-  </div>
+  <div id="womenImages" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
 </main>
 
 <script src="script.js"></script>
+<script>
+  loadCategoryImages("women", "womenImages");
+</script>
 </body>
 </html>
