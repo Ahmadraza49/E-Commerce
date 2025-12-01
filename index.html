@@ -18,29 +18,29 @@
   <!-- HEADER -->
   <header class="bg-white shadow">
     <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="index.html" class="text-xl font-bold">MyShop</a>
+    <a href="index.html" class="text-xl font-bold">MyShop</a>
 
-      <div class="flex items-center gap-3">
-        <div id="userArea" class="hidden items-center gap-3">
-          <button id="btnLogout" class="px-3 py-1 border rounded">Logout</button>
-        </div>
+    <div class="relative">
+      <button id="btnCategories" class="px-3 py-1 border rounded">
+        Categories ▾
+      </button>
 
-        <button id="btnLogin" class="px-3 py-1 bg-indigo-600 text-white rounded">
-          Login / Signup
-        </button>
+      <div id="menuCategories" class="hidden absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg">
+        <a href="men.html" class="block px-4 py-2 hover:bg-gray-100">Men</a>
+        <a href="women.html" class="block px-4 py-2 hover:bg-gray-100">Women</a>
+        <a href="kids.html" class="block px-4 py-2 hover:bg-gray-100">Kids</a>
+      </div>
+    </div>
 
-        <button id="btnCart" class="relative px-3 py-1 border rounded">
-          Cart
-          <span id="cartCount"
-            class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1">0</span>
-        </button>
-
-        <button id="btnMyOrders" onclick="location.href='orders.html'"
+    <button id="btnCart" class="px-3 py-1 border rounded">Cart</button>
+  </div>
+ <button id="btnMyOrders" onclick="location.href='orders.html'"
           class="px-3 py-1 border rounded hidden">My Orders</button>
+
+       
       </div>
     </div>
   </header>
-
 
   <!-- MAIN -->
   <main class="container mx-auto px-4 py-8">
@@ -139,3 +139,4 @@
 
 </body>
 </html>
+
