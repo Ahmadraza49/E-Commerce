@@ -400,10 +400,16 @@ async function loadCategoryImages(category, elementId) {
 }
 
 // Auto load kids category images
-if (document.getElementById("kidsImages")) {
-  loadCategoryImages("mens", "menImages");
-    loadCategoryImages("women", "womenImages");
-    loadCategoryImages("kids", "kidsImages");
+if (document.getElementById("menImages")) {
+  loadCategoryImages("men", "menImages");
+  
 }
-
+if (document.getElementById("womenImages")) {
+  loadCategoryImages("women", "womenImages");
+  
+}
+if (document.getElementById("kidsImages")) {
+  loadCategoryImages("kids", "kidsImages");
+  
+}
 
