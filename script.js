@@ -398,12 +398,19 @@ async function loadCategoryImages(category, containerId) {
 }
 
 // Auto load kids category images
- document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
+
+  if (document.getElementById("menImages")) {
     loadCategoryImages("men", "menImages");
-  });
- document.addEventListener("DOMContentLoaded", () => {
+  }
+
+  if (document.getElementById("womenImages")) {
     loadCategoryImages("women", "womenImages");
-  });
- document.addEventListener("DOMContentLoaded", () => {
+  }
+
+  if (document.getElementById("kidsImages")) {
     loadCategoryImages("kids", "kidsImages");
-  });
+  }
+
+});
+
