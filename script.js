@@ -359,4 +359,21 @@ function attachAuthModalHandlers() {
     alert(error ? error.message : "Reset email sent!");
   });
 }
+// Categories Dropdown
+const btnCategories = document.getElementById("btnCategories");
+const menuCategories = document.getElementById("menuCategories");
+
+if (btnCategories) {
+  btnCategories.addEventListener("click", () => {
+    menuCategories.classList.toggle("hidden");
+  });
+}
+
+// Outside click close
+document.addEventListener("click", (e) => {
+  if (!btnCategories.contains(e.target) && !menuCategories.contains(e.target)) {
+    menuCategories.classList.add("hidden");
+  }
+});
+
 
