@@ -375,5 +375,29 @@ document.addEventListener("click", (e) => {
     menuCategories.classList.add("hidden");
   }
 });
+async function loadCategoryImages(category, elementId) {
+  const { data, error } = await supabase
+    .from("category_images")
+    .select("*")
+    .eq("category", category);
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  let container = document.getElementById(elementId);
+  if (!container) return;
+
+  container.innerHTML = data
+    .map(
+      (img) => `
+        <img src="${img.image_url}" 
+             class="w-full h-48 object-cover rounded mb-4" />
+      `
+    )
+    .join("");
+}
+
 
 
