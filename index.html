@@ -16,31 +16,46 @@
 <body class="bg-gray-50 min-h-screen text-gray-800">
 
   <!-- HEADER -->
-  <header class="bg-white shadow">
-    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+<header class="bg-white shadow">
+  <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+
+    <!-- Logo -->
     <a href="index.html" class="text-xl font-bold">MyShop</a>
 
+    <!-- Center: Categories -->
     <div class="relative">
-      <button id="btnCategories" class="px-3 py-1 border rounded">
+      <button id="btnCategories" class="px-4 py-2 bg-gray-200 rounded">
         Categories ▾
       </button>
 
-      <div id="menuCategories" class="hidden absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg">
+      <div id="menuCategories"
+           class="hidden absolute right-0 mt-2 w-40 bg-white shadow rounded">
         <a href="men.html" class="block px-4 py-2 hover:bg-gray-100">Men</a>
         <a href="women.html" class="block px-4 py-2 hover:bg-gray-100">Women</a>
         <a href="kids.html" class="block px-4 py-2 hover:bg-gray-100">Kids</a>
       </div>
     </div>
 
-    <button id="btnCart" class="px-3 py-1 border rounded">Cart</button>
-  </div>
- <button id="btnMyOrders" onclick="location.href='orders.html'"
-          class="px-3 py-1 border rounded hidden">My Orders</button>
+    <!-- Right: My Orders + Cart -->
+    <div class="flex items-center gap-3">
 
-       
-      </div>
+      <a href="orders.html"
+         id="btnMyOrders"
+         class="px-4 py-2 bg-gray-200 rounded">
+        My Orders
+      </a>
+
+      <button id="btnCart"
+              class="px-4 py-2 bg-blue-600 text-white rounded flex items-center gap-1">
+        Cart
+        <span id="cartCount"
+              class="bg-white text-blue-600 px-2 py-0.5 rounded text-sm">0</span>
+      </button>
     </div>
-  </header>
+
+  </div>
+</header>
+
 
   <!-- MAIN -->
   <main class="container mx-auto px-4 py-8">
@@ -139,6 +154,7 @@
 
 </body>
 </html>
+
 
 
 
