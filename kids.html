@@ -3,10 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>kids — MyShop</title>
+  <title>Kids — MyShop</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 </head>
 
 <body class="bg-gray-50 min-h-screen">
@@ -18,13 +17,14 @@
 </header>
 
 <main class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold mb-4">kids Products</h1>
+  <h1 class="text-3xl font-bold mb-4">Kids Products</h1>
 
-  <div id="kidsImages" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-    <!-- JS will load products here -->
-  </div>
+  <div id="kidsImages" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
 </main>
 
 <script src="script.js"></script>
+<script>
+  loadCategoryImages("kids", "kidsImages");
+</script>
 </body>
 </html>
