@@ -375,41 +375,35 @@ document.addEventListener("click", (e) => {
     menuCategories.classList.add("hidden");
   }
 });
-async function loadCategoryImages(category, elementId) {
-  const { data, error } = await supabase
+async function loadCategoryImages(category, containerId) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+
+  const { data, error } = await sb
     .from("category_images")
     .select("*")
     .eq("category", category);
 
   if (error) {
-    console.log(error);
+    console.error(error);
+    box.innerHTML = "<p>Error loading images</p>";
     return;
   }
 
-  let container = document.getElementById(elementId);
-  if (!container) return;
-
-  container.innerHTML = data
-    .map(
-      (img) => `
-        <img src="${img.image_url}" 
-             class="w-full h-48 object-cover rounded mb-4" />
-      `
-    )
-    .join("");
+  box.innerHTML = data.map(img => `
+    <div class="bg-white p-3 rounded shadow">
+      <img src="${img.image_url}" class="w-full h-56 object-cover rounded" />
+    </div>
+  `).join("");
 }
 
 // Auto load kids category images
-if (document.getElementById("menImages")) {
-  loadCategoryImages("men", "menImages");
-  
-}
-if (document.getElementById("womenImages")) {
-  loadCategoryImages("women", "womenImages");
-  
-}
-if (document.getElementById("kidsImages")) {
-  loadCategoryImages("kids", "kidsImages");
-  
-}
-
+ document.addEventListener("DOMContentLoaded", () => {
+    loadCategoryImages("men", "menImages");
+  });
+ document.addEventListener("DOMContentLoaded", () => {
+    loadCategoryImages("women", "womenImages");
+  });
+ document.addEventListener("DOMContentLoaded", () => {
+    loadCategoryImages("kids", "kidsImages");
+  });
