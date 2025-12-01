@@ -219,6 +219,48 @@ async function setupProductPage() {
     toast("Added to cart");
   });
 }
+async function setupProductPage() {
+  if (!qs("addToCart")) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const imgUrl = params.get("img");
+  const id = params.get("id");
+
+  /* ========== If User Open From Category Page ========== */
+  if (imgUrl && !id) {
+    qs("productTitle").textContent = "Custom Design";
+    qs("productDesc").textContent = "Your selected design preview.";
+    qs("productPrice").textContent = "$99";
+
+    const mainImg = qs("mainProductImage");
+    const gallery = qs("productImages");
+
+    mainImg.src = imgUrl;
+
+    gallery.innerHTML = `
+      <img src="${imgUrl}" 
+           class="w-20 h-20 object-cover rounded cursor-pointer border" />
+    `;
+
+    qs("addToCart").onclick = () => {
+      const qty = Number(qs("quantity").value) || 1;
+      cart.push({ 
+        id: "design-" + Date.now(),
+        title: "Custom Design",
+        price: 99,
+        qty 
+      });
+      saveCart();
+      updateCartUI();
+      toast("Added to cart");
+    };
+
+    return;
+  }
+
+  /* ========== Normal Product Load (ID based) ========== */
+  ...
+}
 
 /* ================= CART UI ================= */
 function updateCartUI() {
@@ -400,6 +442,37 @@ async function loadCategoryImages(category, containerId) {
   `).join("");
 }
 
+async function loadCategoryImages(category, containerId) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+
+  const { data, error } = await sb
+    .from("category_images")
+    .select("*")
+    .eq("category", category);
+
+  if (error) {
+    console.error(error);
+    box.innerHTML = "<p>Error loading images</p>";
+    return;
+  }
+
+  box.innerHTML = data.map(img => `
+    <div class="bg-white p-3 rounded shadow flex flex-col">
+      
+      <img src="${img.image_url}" 
+           class="w-full h-64 object-cover rounded mb-2" />
+
+      <button 
+        onclick="window.location.href='product.html?img=${encodeURIComponent(img.image_url)}'"
+        class="mt-auto px-4 py-2 bg-indigo-600 text-white rounded">
+        View
+      </button>
+
+    </div>
+  `).join("");
+}
+
 // Auto load kids category images
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -416,6 +489,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
+
 
 
 
