@@ -399,5 +399,11 @@ async function loadCategoryImages(category, elementId) {
     .join("");
 }
 
+// Auto load kids category images
+if (document.getElementById("kidsImages")) {
+  loadCategoryImages("mens", "menImages");
+    loadCategoryImages("women", "womenImages");
+    loadCategoryImages("kids", "kidsImages");
+}
 
 
