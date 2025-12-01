@@ -371,10 +371,13 @@ if (btnCategories) {
 
 // Outside click close
 document.addEventListener("click", (e) => {
+  if (!btnCategories || !menuCategories) return;
+
   if (!btnCategories.contains(e.target) && !menuCategories.contains(e.target)) {
     menuCategories.classList.add("hidden");
   }
 });
+
 async function loadCategoryImages(category, containerId) {
   const box = document.getElementById(containerId);
   if (!box) return;
@@ -413,4 +416,5 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
 });
+
 
