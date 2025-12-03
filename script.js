@@ -602,27 +602,3 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
-async function logout() {
-  try {
-    await sb.auth.signOut();
-  } catch (err) {
-    console.warn("signOut failed:", err);
-  }
-  localStorage.removeItem("user");
-  window.location.href = "login.html";
-}
-async function logout() {
-  try {
-    // Supabase logout
-    await supabase.auth.signOut();
-
-    // Remove user from localStorage
-    localStorage.removeItem("user");
-
-    // Redirect to login page
-    window.location.href = "login.html";
-  } catch (error) {
-    console.error("Logout Error:", error.message);
-  }
-}
-
