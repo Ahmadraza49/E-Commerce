@@ -19,39 +19,43 @@
 <body class="bg-gray-50 min-h-screen text-gray-800">
 
 <header class="bg-white shadow">
- <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-    
+  <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+
+    <!-- LEFT -->
     <a href="index.html" class="text-xl font-bold">MyShop</a>
 
-    <div class="flex items-center gap-4">
+    <!-- CENTER -->
+    <div class="relative">
+      <button id="btnCategories" class="px-2 py-1 border rounded text-sm">
+        Categories ▾
+      </button>
 
-      <!-- Categories Menu -->
-      <div class="relative">
-        <button id="btnCategories" class="px-1.5 py-0.5 text-sm border rounded">
-          Categories ▾
-        </button>
-
-        <div id="menuCategories" class="hidden absolute right-0 mt-2 w-40 bg-white border rounded shadow-lg">
-          <a href="men.html" class="block px-4 py-2 hover:bg-gray-100">Men</a>
-          <a href="women.html" class="block px-4 py-2 hover:bg-gray-100">Women</a>
-          <a href="kids.html" class="block px-4 py-2 hover:bg-gray-100">Kids</a>
-        </div>
+      <div id="menuCategories" class="hidden absolute left-0 mt-2 w-40 bg-white border rounded shadow-lg">
+        <a href="men.html" class="block px-4 py-2 hover:bg-gray-100">Men</a>
+        <a href="women.html" class="block px-4 py-2 hover:bg-gray-100">Women</a>
+        <a href="kids.html" class="block px-4 py-2 hover:bg-gray-100">Kids</a>
       </div>
+    </div>
 
-      <!-- Logout Button -->
-      <button 
-        onclick="logout()" 
-        class="px-4 py-2 bg-red-500 text-white rounded shadow">
+    <!-- RIGHT -->
+    <div class="flex items-center gap-3">
+
+      <a href="orders.html" class="px-3 py-1 border rounded">My Orders</a>
+
+      <button onclick="logout()" 
+        class="px-3 py-1 bg-red-500 text-white rounded">
         Logout
       </button>
 
-      <!-- Cart Button -->
-      <button id="btnCart" class="px-3 py-1 border rounded">Cart</button>
+      <button id="btnCart" class="px-3 py-1 border rounded relative">
+        Cart
+      </button>
 
     </div>
 
   </div>
 </header>
+
 
 
 <main class="container mx-auto px-4 py-8">
