@@ -1,40 +1,30 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<title>Login</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-gray-100 flex justify-center items-center h-screen">
 
+  <div class="bg-white shadow-lg p-8 rounded w-96">
+    <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
 
-<div class="bg-white p-6 rounded-2xl shadow w-80">
-<h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+    <input id="loginEmail" class="w-full p-2 border mb-3" placeholder="Email">
+    <input id="loginPassword" type="password" class="w-full p-2 border mb-4" placeholder="Password">
 
+    <button onclick="login()" class="w-full bg-blue-600 text-white p-2 rounded">Login</button>
 
-<input id="email" type="email" placeholder="Email"
-class="w-full border p-2 rounded mb-3" />
+    <p class="text-center mt-4">
+      <a href="reset.html" class="text-blue-600">Forgot password?</a>
+    </p>
 
+    <p class="text-center mt-2 text-gray-600">
+      Don’t have an account? <a href="signup.html" class="text-blue-600">Sign Up</a>
+    </p>
+  </div>
 
-<input id="password" type="password" placeholder="Password"
-class="w-full border p-2 rounded mb-4" />
-
-
-<button onclick="login()"
-class="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded mb-3">
-Login
-</button>
-
-
-<a href="reset.html" class="text-blue-600 text-sm">Forgot Password?</a>
-
-
-<p class="text-center text-sm mt-4">No account? <a href="signup.html" class="text-blue-600">Signup</a></p>
-</div>
-
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
