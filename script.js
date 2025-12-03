@@ -513,3 +513,73 @@ function attachAuthModalHandlers() {
     alert(error ? error.message : "Reset email sent!");
   });
 }
+
+   async function login() {
+email,
+password,
+});
+
+
+if (error) {
+alert(error.message);
+return;
+}
+
+
+localStorage.setItem("user", JSON.stringify(data.user));
+window.location.href = "index.html";
+}
+
+
+/* ===============================
+SIGNUP
+================================ */
+async function signup() {
+const email = document.getElementById("email").value;
+const password = document.getElementById("password").value;
+
+
+let { data, error } = await supabaseClient.auth.signUp({ email, password });
+
+
+if (error) {
+alert(error.message);
+return;
+}
+
+
+alert("Account created! Now login.");
+window.location.href = "login.html";
+}
+
+
+/* ===============================
+RESET PASSWORD
+================================ */
+async function resetPassword() {
+const email = document.getElementById("email").value;
+
+
+let { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+redirectTo: "https://your-vercel-url.com/update-password.html",
+});
+
+
+if (error) {
+alert(error.message);
+return;
+}
+
+
+alert("Password reset link sent to your email!");
+}
+
+
+/* ===============================
+LOGOUT
+================================ */
+async function logout() {
+await supabaseClient.auth.signOut();
+localStorage.removeItem("user");
+window.location.href = "login.html";
+}
