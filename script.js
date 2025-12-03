@@ -531,55 +531,53 @@ window.location.href = "index.html";
 }
 
 
-/* ===============================
-SIGNUP
-================================ */
+/* LOGIN */
+async function login() {
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPassword").value;
+
+  let { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) return alert(error.message);
+
+  alert("Login successful!");
+  window.location.href = "index.html";
+}
+
+/* SIGNUP */
 async function signup() {
-const email = document.getElementById("email").value;
-const password = document.getElementById("password").value;
+  const email = document.getElementById("signupEmail").value;
+  const password = document.getElementById("signupPassword").value;
 
+  let { data, error } = await sb.auth.signUp({ email, password });
 
-let { data, error } = await supabaseClient.auth.signUp({ email, password });
+  if (error) return alert(error.message);
 
-
-if (error) {
-alert(error.message);
-return;
+  alert("Account created, now login!");
+  window.location.href = "login.html";
 }
 
-
-alert("Account created! Now login.");
-window.location.href = "login.html";
-}
-
-
-/* ===============================
-RESET PASSWORD
-================================ */
+/* SEND RESET LINK */
 async function resetPassword() {
-const email = document.getElementById("email").value;
+  const email = document.getElementById("resetEmail").value;
 
+  let { data, error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://YOUR-VERCEL-URL/update-password.html"
+  });
 
-let { data, error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-redirectTo: "https://your-vercel-url.com/update-password.html",
-});
+  if (error) return alert(error.message);
 
-
-if (error) {
-alert(error.message);
-return;
+  alert("Reset link sent to email.");
 }
 
+/* UPDATE PASSWORD */
+async function updatePassword() {
+  const newPass = document.getElementById("newPassword").value;
 
-alert("Password reset link sent to your email!");
-}
+  let { data, error } = await sb.auth.updateUser({ password: newPass });
 
+  if (error) return alert(error.message);
 
-/* ===============================
-LOGOUT
-================================ */
-async function logout() {
-await supabaseClient.auth.signOut();
-localStorage.removeItem("user");
-window.location.href = "login.html";
+  alert("Password updated!");
+  window.location.href = "login.html";
 }
