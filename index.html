@@ -11,11 +11,7 @@
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!user) {
-    window.location.href = "login.html";
-  }
+ 
 </script>
 
 </head>
@@ -162,9 +158,14 @@
 
   <!-- JS -->
   <script src="script.js"></script>
-
+ <script>
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (!user) {
+    window.location.href = "login.html";
+  }
 </body>
 </html>
+
 
 
 
