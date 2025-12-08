@@ -602,7 +602,7 @@ async function resetPassword() {
 
   const { data, error } = await sb.auth.resetPasswordForEmail(email, {
     // REPLACE the URL below with your Vercel URL + update page path
-    redirectTo: "https://e-commerce-wheat-eta.vercel.app//update-password.html",
+    redirectTo: "https://e-commerce-wheat-eta.vercel.app/reset.html",
   });
   if (error) return alert(error.message);
 
@@ -623,4 +623,5 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
 
