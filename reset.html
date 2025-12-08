@@ -6,14 +6,16 @@
   <title>Reset Password</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
+
+  <!-- ❗ DO NOT REDIRECT USER ON RESET LINK -->
+  <!-- 
   const user = localStorage.getItem("user");
   if (!user) {
     window.location.href = "login.html";
   }
-</script>
-
+  -->
 </head>
+
 <body class="bg-gray-100 flex justify-center items-center h-screen">
 
   <div class="bg-white shadow-lg p-8 rounded w-96">
@@ -29,6 +31,21 @@
       Back to <a href="login.html" class="text-blue-600">Login</a>
     </p>
   </div>
+
+  <script>
+    // SUPABASE CLIENT
+    const sb = supabase.createClient(
+      "https://ytxhlihzxgftffaikumr.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eGhsaWh6eGdmdGZmYWlrdW1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODAxNTgsImV4cCI6MjA3OTQ1NjE1OH0._k5hfgJwVSrbXtlRDt3ZqCYpuU1k-_OqD7M0WML4ehA"
+    );
+
+    // 🟢 LISTEN FOR PASSWORD RECOVERY EVENT
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        window.location.href = "updatepassword.html";
+      }
+    });
+  </script>
 
   <script src="script.js"></script>
 </body>
