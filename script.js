@@ -503,11 +503,32 @@ function attachAuthModalHandlers() {
       return;
     }
 
-    const { error: signupErr } = await sb.auth.signUp({
-      email,
-      password: pass,
-      options: { emailRedirectTo: null },
-    });
+   // SIGNUP + AUTO-LOGIN
+const { data: signData, error: signupErr } = await sb.auth.signUp({
+  email,
+  password: pass,
+  options: { emailRedirectTo: null },
+});
+
+if (signupErr) {
+  authMsg.textContent = signupErr.message;
+  return;
+}
+
+// AUTO LOGIN
+const { error: loginErr } = await sb.auth.signInWithPassword({
+  email,
+  password: pass,
+});
+
+if (loginErr) {
+  authMsg.textContent = loginErr.message;
+  return;
+}
+
+authMsg.textContent = "Signup successful!";
+location.reload();
+
 
     if (signupErr) {
       if (authMsg) authMsg.textContent = signupErr.message;
@@ -581,7 +602,7 @@ async function resetPassword() {
 
   const { data, error } = await sb.auth.resetPasswordForEmail(email, {
     // REPLACE the URL below with your Vercel URL + update page path
-    redirectTo: "https://YOUR-VERCEL-URL/update-password.html",
+    redirectTo: "https://e-commerce-wheat-eta.vercel.app//update-password.html",
   });
   if (error) return alert(error.message);
 
@@ -602,3 +623,4 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
