@@ -548,7 +548,7 @@ location.reload();
     const email = qs("authEmail")?.value.trim();
     if (!email) return alert("Enter your email first!");
     const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + "/update-password.html",
+      redirectTo: window.location.origin + "/updatepassword.html",
     });
     alert(error ? error.message : "Reset email sent!");
   });
@@ -602,7 +602,8 @@ async function resetPassword() {
 
   const { data, error } = await sb.auth.resetPasswordForEmail(email, {
     // REPLACE the URL below with your Vercel URL + update page path
-    redirectTo: "https://e-commerce-wheat-eta.vercel.app/updatepassword.html",
+  redirectTo: "https://e-commerce-wheat-eta.vercel.app/updatepassword.html",
+
   });
   if (error) return alert(error.message);
 
@@ -623,6 +624,7 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
 
 
 
