@@ -48,5 +48,27 @@
   </script>
 
   <script src="script.js"></script>
+  <script>
+async function resetPassword() {
+  const email = document.getElementById("resetEmail").value;
+
+  if (!email) {
+    alert("Please enter your email.");
+    return;
+  }
+
+  const { data, error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://e-commerce-wheat-eta.vercel.app/updatepassword.html",
+  });
+
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Reset link sent! Check Inbox + Spam.");
+  }
+}
+</script>
+
+  
 </body>
 </html>
