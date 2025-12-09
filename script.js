@@ -91,37 +91,36 @@ function setupCartModal() {
     updateCartUI();
   });
 
+  
   checkoutBtn?.addEventListener("click", async () => {
-  try {
-    const { data: sessionData } = await sb.auth.getSession();
-    const user = sessionData?.session?.user;
+    try {
+      const user = (await sb.auth.getUser()).data?.user;
+      if (!user) return toast("Please login first");
+      if (!cart.length) return toast("Cart is empty");
 
-    if (!user) return toast("Please login first");
-    if (!cart.length) return toast("Cart is empty");
+      const order = {
+        user_id: user.id,
+        items: cart,
+        total: cart.reduce((a, b) => a + Number(b.price) * Number(b.qty), 0),
+        status: "pending",
+        created_at: new Date().toISOString()
+      };
 
-    const order = {
-      user_id: user.id,
-      user_email: user.email, 
-      items: cart,
-      total: cart.reduce((a, b) => a + Number(b.price) * Number(b.qty), 0),
-      status: "complete",
-      created_at: new Date().toISOString(),
-    };
+      const { error } = await sb.from("orders").insert([order]);
+      if (error) return toast("Order error: " + error.message);
 
-    const { error } = await sb.from("orders").insert([order]);
-    if (error) return toast("Order error: " + error.message);
-
-    toast("Order placed!");
-    cart = [];
-    saveCart();
-    updateCartUI();
-    hide(cartModal);
-    window.location.href = "orders.html";
-  } catch (err) {
-    console.error(err);
-    toast("Checkout failed");
-  }
-});
+      toast("Order placed!");
+      cart = [];
+      saveCart();
+      updateCartUI();
+      hide(cartModal);
+      window.location.href = "orders.html";
+    } catch (err) {
+      console.error(err);
+      toast("Checkout failed");
+    }
+  });
+}
 
 
 /* ================= AUTH CHECK ================= */
@@ -627,6 +626,7 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
 
 
 
