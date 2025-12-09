@@ -595,20 +595,20 @@ async function signup() {
   window.location.href = "login.html";
 }
 
-/* SEND RESET LINK (for reset.html) */
-async function resetPassword() {
-  const email = (qs("resetEmail") || {}).value || "";
-  if (!email) return alert("Enter your email");
+// /* SEND RESET LINK (for reset.html) */
+// async function resetPassword() {
+//   const email = (qs("resetEmail") || {}).value || "";
+//   if (!email) return alert("Enter your email");
 
-  const { data, error } = await sb.auth.resetPasswordForEmail(email, {
-    // REPLACE the URL below with your Vercel URL + update page path
-  redirectTo: "https://e-commerce-wheat-eta.vercel.app/updatepassword.html",
+//   const { data, error } = await sb.auth.resetPasswordForEmail(email, {
+//     // REPLACE the URL below with your Vercel URL + update page path
+//   redirectTo: "https://e-commerce-wheat-eta.vercel.app/updatepassword.html",
 
-  });
-  if (error) return alert(error.message);
+//   });
+//   if (error) return alert(error.message);
 
-  alert("Reset link sent to your email (check spam).");
-}
+//   alert("Reset link sent to your email (check spam).");
+// }
 
 /* UPDATE PASSWORD (for update-password.html) */
 async function updatePassword() {
@@ -624,6 +624,7 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
 
 
 
