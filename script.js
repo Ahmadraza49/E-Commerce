@@ -96,14 +96,15 @@ function setupCartModal() {
       const user = (await sb.auth.getUser()).data?.user;
       if (!user) return toast("Please login first");
       if (!cart.length) return toast("Cart is empty");
+const order = {
+  user_id: user.id,
+  user_email: user.email,   // 👈 ADD THIS LINE
+  items: cart,
+  total: cart.reduce((a, b) => a + Number(b.price) * Number(b.qty), 0),
+  status: "pending",
+  created_at: new Date().toISOString(),
+};
 
-      const order = {
-        user_id: user.id,
-        items: cart,
-        total: cart.reduce((a, b) => a + Number(b.price) * Number(b.qty), 0),
-        status: "pending",
-        created_at: new Date().toISOString(),
-      };
 
       const { error } = await sb.from("orders").insert([order]);
       if (error) return toast("Order error: " + error.message);
@@ -624,6 +625,7 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
 
 
 
