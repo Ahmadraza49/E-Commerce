@@ -90,11 +90,10 @@ function setupCartModal() {
     saveCart();
     updateCartUI();
   });
-
 checkoutBtn?.addEventListener("click", async () => {
   try {
-    const { data: sessionData } = await sb.auth.getSession();
-    const user = sessionData?.session?.user;
+    const { data } = await sb.auth.getUser();
+    const user = data?.user;
 
     if (!user) return toast("Please login first");
     if (!cart.length) return toast("Cart is empty");
@@ -627,6 +626,7 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
 
 
 
