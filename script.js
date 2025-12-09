@@ -98,6 +98,7 @@ checkoutBtn?.addEventListener("click", async () => {
 
       const order = {
         user_id: user.id,
+               user_email: user.email,
         items: cart,
         total: cart.reduce((a, b) => a + Number(b.price) * Number(b.qty), 0),
         status: "pending",
@@ -624,6 +625,7 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
 
 
 
