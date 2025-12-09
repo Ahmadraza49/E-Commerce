@@ -101,7 +101,7 @@ const order = {
   user_email: user.email,   // 👈 ADD THIS LINE
   items: cart,
   total: cart.reduce((a, b) => a + Number(b.price) * Number(b.qty), 0),
-  status: "pending",
+  status: "complete",
   created_at: new Date().toISOString(),
 };
 
@@ -625,6 +625,7 @@ async function updatePassword() {
 }
 
 /* LOGOUT helper */
+
 
 
 
